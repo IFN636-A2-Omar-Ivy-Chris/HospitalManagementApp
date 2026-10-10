@@ -101,5 +101,5 @@ The EC2 public IP will change when the instance is stopped and restarted.
 ## Version Control
 
 Development is managed using Git and GitHub with feature branches and regular commits associated with jira stories and subtasks. 
-
+Testing CI/CD
 
