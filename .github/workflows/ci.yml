@@ -43,3 +43,42 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
           PORT: ${{ secrets.PORT }}
         run: npm test
+
+  deploy:
+    name: Deploy to EC2
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Stop Running Services
+        run: pm2 stop all || true
+
+      - name: Install Backend Dependencies
+        working-directory: ./backend
+        run: npm ci
+
+      - name: Build Frontend
+        working-directory: ./frontend
+        env:
+          CI: false
+        run: |
+          npm ci
+          npm run build
+
+      - name: Create Production .env
+        working-directory: ./backend
+        run: echo "${{ secrets.PROD }}" > .env
+
+      - name: Start Services
+        run: |
+          pm2 start all
+          pm2 restart all
