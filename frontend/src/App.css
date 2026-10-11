@@ -110,6 +110,22 @@ body {
     padding: 20px;
 }
 
+.home-links {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.home-link {
+    padding: 12px 24px;
+    background-color: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+
 .ward-list {
     display: flex;
     flex-direction: column;

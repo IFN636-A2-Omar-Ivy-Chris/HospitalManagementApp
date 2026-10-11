@@ -7,11 +7,11 @@ class HomePageFacade{
         ];
     }
 
-    getNews(){
-        return [];
-    }
-
     getOnCall(){
+    return [];
+}
+
+    getNews(){
         return [];
     }
 
