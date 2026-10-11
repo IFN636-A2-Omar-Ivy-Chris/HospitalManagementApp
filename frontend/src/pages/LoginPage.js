@@ -19,7 +19,7 @@ function LoginPage() {
             );
             localStorage.setItem("token", response.data.token);
             localStorage.setItem("user", JSON.stringify(response.data.user));
-            navigate("/wards");
+            navigate("/home");
         } catch (error) {
             setIsError(true);
             if (error.response?.data?.message) {

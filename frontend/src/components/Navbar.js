@@ -15,6 +15,7 @@ function Navbar() {
             <div className="navbar-brand">Hospital Management App</div>
 
             <div className="navbar-links">
+                <Link to="/home">Home</Link>
                 <Link to="/wards">Wards</Link>
 
                 {/* Other navigation links can be added here later */}
