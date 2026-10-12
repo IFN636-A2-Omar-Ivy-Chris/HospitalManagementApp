@@ -6,6 +6,10 @@ import Navbar from "../components/Navbar";
 function HomePage() {
     const [links, setLinks] = useState([]);
     const [error, setError] = useState("");
+    const [notes, setNotes] = useState([]);
+    const [newNote, setNewNote] = useState("");
+    const [editingNoteId, setEditingNoteId] = useState(null);
+    const [editText, setEditText] = useState("");
 
     useEffect(() => {
         const getHomePage = async () => {
@@ -20,6 +24,7 @@ function HomePage() {
                 });
 
                 setLinks(response.data.links);
+                setNotes(response.data.notes);
             } catch (error) {
                 setError("Unable to load home page");
             }
@@ -27,6 +32,90 @@ function HomePage() {
 
         getHomePage();
     }, []);
+
+    // Save a new note when the user clicks Confirm
+    const handleAddNote = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            const response = await axios.post(
+                "/api/notes",
+                { text: newNote },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            // Add the saved note to the list and clear the text box
+            setNotes([...notes, response.data]);
+            setNewNote("");
+        } catch (error) {
+            setError("Unable to add note");
+        }
+    };
+
+    // Open the edit box for one note
+    const startEditing = (note) => {
+        setEditingNoteId(note._id);
+        setEditText(note.text);
+    };
+
+    // Close the edit box without saving
+    const cancelEditing = () => {
+        setEditingNoteId(null);
+        setEditText("");
+    };
+
+    // Save the edited note when the user clicks Confirm
+    const handleUpdateNote = async (noteId) => {
+        try {
+            const token = localStorage.getItem("token");
+
+            const response = await axios.put(
+                `/api/notes/${noteId}`,
+                { text: editText },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            // Replace the old note with the updated one
+            setNotes(
+                notes.map((note) =>
+                    note._id === noteId ? response.data : note,
+                ),
+            );
+            cancelEditing();
+        } catch (error) {
+            setError("Unable to update note");
+        }
+    };
+
+    // Delete a note after the user confirms
+    const handleDeleteNote = async (noteId) => {
+        if (!window.confirm("Delete this note?")) {
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem("token");
+
+            await axios.delete(`/api/notes/${noteId}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            // Remove the deleted note from the list
+            setNotes(notes.filter((note) => note._id !== noteId));
+        } catch (error) {
+            setError("Unable to delete note");
+        }
+    };
 
     return (
         <>
@@ -61,6 +150,64 @@ function HomePage() {
 
                 <section>
                     <h2>Notes</h2>
+
+                    {/* Add a new note */}
+                    <div className="note-form">
+                        <textarea
+                            value={newNote}
+                            onChange={(event) => setNewNote(event.target.value)}
+                            placeholder="Write a note..."
+                        />
+                        <button onClick={handleAddNote}>Confirm</button>
+                    </div>
+
+                    {/* List of my notes */}
+                    <div className="note-list">
+                        {notes.map((note) => (
+                            <div className="note-item" key={note._id}>
+                                {editingNoteId === note._id ? (
+                                    // Edit mode: text box + Confirm / Cancel
+                                    <div className="note-form">
+                                        <textarea
+                                            value={editText}
+                                            onChange={(event) =>
+                                                setEditText(event.target.value)
+                                            }
+                                        />
+                                        <button
+                                            onClick={() =>
+                                                handleUpdateNote(note._id)
+                                            }
+                                        >
+                                            Confirm
+                                        </button>
+                                        <button onClick={cancelEditing}>
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    // Normal mode: text + Edit / Delete
+                                    <>
+                                        <p>{note.text}</p>
+                                        <div className="note-actions">
+                                            <button
+                                                onClick={() => startEditing(note)}
+                                            >
+                                                Edit
+                                            </button>
+                                            <button
+                                                onClick={() =>
+                                                    handleDeleteNote(note._id)
+                                                }
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </section>
             </main>
         </>
