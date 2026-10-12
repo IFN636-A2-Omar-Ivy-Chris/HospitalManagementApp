@@ -2,6 +2,13 @@ const Note = require("../models/Note");
 
 const addNote = async (req, res) => {
     try {
+        // A note cannot be empty or only spaces
+        if (!req.body.text || req.body.text.trim() === "") {
+            return res.status(400).json({
+                message: "Note cannot be empty",
+            });
+        }
+
         const note = await Note.create({
             // The owner comes from the login token, not from the request body,
             // so a user cannot create notes for someone else
@@ -21,6 +28,13 @@ const addNote = async (req, res) => {
 
 const updateNote = async (req, res) => {
     try {
+        // A note cannot be empty or only spaces
+        if (!req.body.text || req.body.text.trim() === "") {
+            return res.status(400).json({
+                message: "Note cannot be empty",
+            });
+        }
+
         const note = await Note.findById(req.params.noteId);
 
         if (!note) {

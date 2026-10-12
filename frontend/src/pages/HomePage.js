@@ -10,6 +10,7 @@ function HomePage() {
     const [newNote, setNewNote] = useState("");
     const [editingNoteId, setEditingNoteId] = useState(null);
     const [editText, setEditText] = useState("");
+    const [noteError, setNoteError] = useState("");
 
     useEffect(() => {
         const getHomePage = async () => {
@@ -35,6 +36,8 @@ function HomePage() {
 
     // Save a new note when the user clicks Confirm
     const handleAddNote = async () => {
+        setNoteError("");
+
         try {
             const token = localStorage.getItem("token");
 
@@ -52,7 +55,12 @@ function HomePage() {
             setNotes([...notes, response.data]);
             setNewNote("");
         } catch (error) {
-            setError("Unable to add note");
+            // Show the message from the backend (e.g. "Note cannot be empty")
+            if (error.response?.data?.message) {
+                setNoteError(error.response.data.message);
+            } else {
+                setNoteError("Unable to add note");
+            }
         }
     };
 
@@ -66,10 +74,13 @@ function HomePage() {
     const cancelEditing = () => {
         setEditingNoteId(null);
         setEditText("");
+        setNoteError("");
     };
 
     // Save the edited note when the user clicks Confirm
     const handleUpdateNote = async (noteId) => {
+        setNoteError("");
+
         try {
             const token = localStorage.getItem("token");
 
@@ -91,7 +102,12 @@ function HomePage() {
             );
             cancelEditing();
         } catch (error) {
-            setError("Unable to update note");
+            // Show the message from the backend (e.g. "Note cannot be empty")
+            if (error.response?.data?.message) {
+                setNoteError(error.response.data.message);
+            } else {
+                setNoteError("Unable to update note");
+            }
         }
     };
 
@@ -100,6 +116,8 @@ function HomePage() {
         if (!window.confirm("Delete this note?")) {
             return;
         }
+
+        setNoteError("");
 
         try {
             const token = localStorage.getItem("token");
@@ -113,7 +131,12 @@ function HomePage() {
             // Remove the deleted note from the list
             setNotes(notes.filter((note) => note._id !== noteId));
         } catch (error) {
-            setError("Unable to delete note");
+            // Show the message from the backend (e.g. "Note cannot be empty")
+            if (error.response?.data?.message) {
+                setNoteError(error.response.data.message);
+            } else {
+                setNoteError("Unable to delete note");
+            }
         }
     };
 
@@ -150,6 +173,10 @@ function HomePage() {
 
                 <section>
                     <h2>Notes</h2>
+
+                    {noteError && (
+                        <p className="error-message">{noteError}</p>
+                    )}
 
                     {/* Add a new note */}
                     <div className="note-form">
