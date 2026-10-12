@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
 import LoginPage from "./pages/LoginPage";
+import HomePage from "./pages/HomePage";
 import WardsPage from "./pages/WardsPage";
 import WardPatientsPage from "./pages/WardPatientsPage";
 import PatientAdmissionPage from "./pages/PatientAdmissionPage";
@@ -25,6 +26,14 @@ function App() {
             <Routes>
                 <Route path="/" element={<LoginPage />} />
 
+                <Route
+                    path="/home"
+                    element={
+                        <ProtectedRoute>
+                            <HomePage />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/wards"
                     element={
