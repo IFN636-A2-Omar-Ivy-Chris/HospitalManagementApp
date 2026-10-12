@@ -62,3 +62,28 @@ describe('HomePageFacade - navigation links by role', () => {
     expect(facade.getNews).to.equal(undefined);
   });
 });
+
+describe('HomePageFacade - personal notes', () => {
+  const facade = new HomePageFacade();
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('only looks for notes written by the logged in user', async () => {
+    const findStub = sinon.stub(Note, 'find').resolves([]);
+
+    await facade.getHomePageData('doctor', 'user123');
+
+    expect(findStub.calledOnceWith({ user: 'user123' })).to.be.true;
+  });
+
+  it('returns the user notes in the home page data', async () => {
+    const myNotes = [{ _id: 'note1', user: 'user123', text: 'Check ward 3' }];
+    sinon.stub(Note, 'find').resolves(myNotes);
+
+    const data = await facade.getHomePageData('nurse', 'user123');
+
+    expect(data.notes).to.deep.equal(myNotes);
+  });
+});
