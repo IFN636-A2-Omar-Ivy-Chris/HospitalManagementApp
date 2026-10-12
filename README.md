@@ -61,7 +61,7 @@ npm run install-all
 Create a `.env` file inside the `backend` directory containing:
 
 ```text
-PORT=5000
+PORT=5001
 MONGO_URI=<MongoDB Atlas connection string>
 JWT_SECRET=<JWT secret>
 ```
@@ -78,7 +78,7 @@ The frontend will run at:
 http://localhost:3000
 ```
 
-The backend runs on port `5000`.
+The backend runs on port `5001`. Port `5000` is avoided because macOS uses it for AirPlay Receiver.
 
 ## Deployment
 
