@@ -6,6 +6,7 @@ const authRoutes = require("./routes/authRoutes");
 const wardRoutes = require("./routes/wardRoutes");
 const patientRoutes = require("./routes/patientRoutes");
 const homeRoutes = require("./routes/homeRoutes");
+const noteRoutes = require("./routes/noteRoutes");
 
 dotenv.config();
 
@@ -26,6 +27,7 @@ app.use("/api/auth", authRoutes);
 app.use("/api/wards", wardRoutes);
 app.use("/api/patients", patientRoutes);
 app.use("/api/home", homeRoutes);
+app.use("/api/notes", noteRoutes);
 
 app.get("/", (req, res) => {
     res.json({ message: "Hospital Management API is running" });

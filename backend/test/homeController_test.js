@@ -1,12 +1,22 @@
 const chai = require('chai');
 const sinon = require('sinon');
 const HomePageFacade = require('../facades/HomePageFacade');
+const Note = require('../models/Note');
 const { getHomePage } = require('../controllers/homeController');
 const { expect } = chai;
 
-describe('GetHomePage Function Test', () => {
+describe('GetHomePage Function Test', async () => {
 
-  it('should return home page data for the logged in user role', () => {
+  // The Facade reads notes from the database, so replace it with a fake one
+  beforeEach(() => {
+    sinon.stub(Note, 'find').resolves([]);
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('should return home page data for the logged in user role', async () => {
     // Mock request (protect middleware puts the user from the token into req.user)
     const req = { user: { id: 'user123', role: 'doctor' } };
 
@@ -17,7 +27,7 @@ describe('GetHomePage Function Test', () => {
     };
 
     // Call function
-    getHomePage(req, res);
+    await getHomePage(req, res);
 
     // Assertions
     expect(res.status.calledWith(200)).to.be.true;
@@ -27,7 +37,7 @@ describe('GetHomePage Function Test', () => {
     expect(labels).to.deep.equal(['Patient', 'Ward', 'Pharmacy']);
   });
 
-  it('should pass the user role to the Facade', () => {
+  it('should pass the user role and id to the Facade', async () => {
     // Spy on the Facade to check what the controller sends it
     const facadeSpy = sinon.spy(HomePageFacade.prototype, 'getHomePageData');
 
@@ -37,9 +47,9 @@ describe('GetHomePage Function Test', () => {
       json: sinon.spy()
     };
 
-    getHomePage(req, res);
+    await getHomePage(req, res);
 
-    expect(facadeSpy.calledOnceWith('pharmacist')).to.be.true;
+    expect(facadeSpy.calledOnceWith('pharmacist', 'user456')).to.be.true;
 
     const data = res.json.firstCall.args[0];
     const labels = data.links.map((link) => link.label);
@@ -49,9 +59,9 @@ describe('GetHomePage Function Test', () => {
     facadeSpy.restore();
   });
 
-  it('should return 500 if an error occurs', () => {
+  it('should return 500 if an error occurs', async () => {
     // Stub the Facade to throw an error
-    const facadeStub = sinon.stub(HomePageFacade.prototype, 'getHomePageData').throws(new Error('Facade Error'));
+    const facadeStub = sinon.stub(HomePageFacade.prototype, 'getHomePageData').rejects(new Error('Facade Error'));
 
     // Hide the expected error log so the test output stays clean
     const consoleStub = sinon.stub(console, 'error');
@@ -62,7 +72,7 @@ describe('GetHomePage Function Test', () => {
       json: sinon.spy()
     };
 
-    getHomePage(req, res);
+    await getHomePage(req, res);
 
     expect(res.status.calledWith(500)).to.be.true;
     expect(res.json.calledWithMatch({ message: 'Server error' })).to.be.true;
