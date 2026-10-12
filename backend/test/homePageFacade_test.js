@@ -1,38 +1,49 @@
 const { expect } = require('chai');
+const sinon = require('sinon');
 const HomePageFacade = require('../facades/HomePageFacade');
+const Note = require('../models/Note');
 
 describe('HomePageFacade - navigation links by role', () => {
   const facade = new HomePageFacade();
 
-  it('doctor sees Patient, Ward and Pharmacy links', () => {
-    const data = facade.getHomePageData('doctor');
+  // The Facade reads notes from the database, so replace it with a fake one
+  beforeEach(() => {
+    sinon.stub(Note, 'find').resolves([]);
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('doctor sees Patient, Ward and Pharmacy links', async () => {
+    const data = await facade.getHomePageData('doctor');
     const labels = data.links.map((link) => link.label);
 
     expect(labels).to.deep.equal(['Patient', 'Ward', 'Pharmacy']);
   });
 
-  it('nurse sees Patient, Ward and Pharmacy links', () => {
-    const data = facade.getHomePageData('nurse');
+  it('nurse sees Patient, Ward and Pharmacy links', async () => {
+    const data = await facade.getHomePageData('nurse');
     const labels = data.links.map((link) => link.label);
 
     expect(labels).to.deep.equal(['Patient', 'Ward', 'Pharmacy']);
   });
 
-  it('pharmacist does not see the Patient link', () => {
-    const data = facade.getHomePageData('pharmacist');
+  it('pharmacist does not see the Patient link', async () => {
+    const data = await facade.getHomePageData('pharmacist');
     const labels = data.links.map((link) => link.label);
 
     expect(labels).to.deep.equal(['Ward', 'Pharmacy']);
   });
 
-  it('unknown role sees no links', () => {
-    const data = facade.getHomePageData('visitor');
+  it('unknown role sees no links', async () => {
+    const data = await facade.getHomePageData('visitor');
 
     expect(data.links).to.deep.equal([]);
   });
 
-  it('each link has a label and a path', () => {
-    const data = facade.getHomePageData('doctor');
+  it('each link has a label and a path', async () => {
+    const data = await facade.getHomePageData('doctor');
 
     data.links.forEach((link) => {
       expect(link).to.have.property('label');
@@ -40,8 +51,8 @@ describe('HomePageFacade - navigation links by role', () => {
     });
   });
 
-  it('returns all home page sections in one call', () => {
-    const data = facade.getHomePageData('doctor');
+  it('returns all home page sections in one call', async () => {
+    const data = await facade.getHomePageData('doctor');
 
     expect(data).to.have.all.keys('links', 'news', 'onCall', 'notes');
   });
@@ -49,5 +60,30 @@ describe('HomePageFacade - navigation links by role', () => {
   it('hides its internal methods (Encapsulation)', () => {
     expect(facade.getNavLinks).to.equal(undefined);
     expect(facade.getNews).to.equal(undefined);
+  });
+});
+
+describe('HomePageFacade - personal notes', () => {
+  const facade = new HomePageFacade();
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('only looks for notes written by the logged in user', async () => {
+    const findStub = sinon.stub(Note, 'find').resolves([]);
+
+    await facade.getHomePageData('doctor', 'user123');
+
+    expect(findStub.calledOnceWith({ user: 'user123' })).to.be.true;
+  });
+
+  it('returns the user notes in the home page data', async () => {
+    const myNotes = [{ _id: 'note1', user: 'user123', text: 'Check ward 3' }];
+    sinon.stub(Note, 'find').resolves(myNotes);
+
+    const data = await facade.getHomePageData('nurse', 'user123');
+
+    expect(data.notes).to.deep.equal(myNotes);
   });
 });

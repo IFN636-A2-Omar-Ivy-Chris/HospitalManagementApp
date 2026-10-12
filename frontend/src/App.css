@@ -126,6 +126,46 @@ body {
     font-weight: bold;
 }
 
+.note-form {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.note-form textarea {
+    flex: 1;
+    padding: 10px;
+    font-family: inherit;
+}
+
+.note-form button {
+    padding: 10px 16px;
+    cursor: pointer;
+}
+
+.note-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.note-item {
+    background-color: white;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.note-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.note-actions button {
+    padding: 6px 12px;
+    cursor: pointer;
+}
+
 .ward-list {
     display: flex;
     flex-direction: column;
