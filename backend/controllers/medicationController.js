@@ -77,4 +77,50 @@ const createMedication = async (req, res) => {
     }
 };
 
-module.exports = { getMedications, createMedication };
+const updateMedication = async (req, res) => {
+    try {
+        const validationError = validateMedication(req.body);
+
+        if (validationError) {
+            return res.status(400).json({
+                message: validationError,
+            });
+        }
+
+        const { name, dosage, form, stockQuantity } = req.body;
+
+        const medication = await medicationRepository.updateById(req.params.id, {
+            name,
+            dosage,
+            form,
+            stockQuantity: Number(stockQuantity),
+        });
+
+        if (!medication) {
+            return res.status(404).json({
+                message: "Medication not found",
+            });
+        }
+
+        res.status(200).json(medication);
+    } catch (error) {
+        if (error.name === "CastError") {
+            return res.status(404).json({
+                message: "Medication not found",
+            });
+        }
+
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "A medication with this name already exists",
+            });
+        }
+
+        console.error("Error updating medication:", error);
+
+        res.status(500).json({
+            message: "Server error",
+        });
+    }
+};
+module.exports = { getMedications, createMedication, updateMedication };
