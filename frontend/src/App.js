@@ -8,6 +8,7 @@ import PatientAdmissionPage from "./pages/PatientAdmissionPage";
 import PatientRecordPage from "./pages/PatientRecordPage";
 import PatientEditPage from "./pages/PatientEditPage";
 import PharmacyPage from "./pages/PharmacyPage";
+import PatientsPage from "./pages/PatientsPage";
 
 import "./App.css";
 
@@ -82,6 +83,8 @@ function App() {
                             <PharmacyPage/>
                         </ProtectedRoute>
                     }
+                />
+                <Route path="/patients" element={<PatientsPage />} 
                 />
             </Routes>
         </BrowserRouter>

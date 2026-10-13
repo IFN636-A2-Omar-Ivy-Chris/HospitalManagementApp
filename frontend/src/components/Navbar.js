@@ -18,6 +18,7 @@ function Navbar() {
                 <Link to="/home">Home</Link>
                 <Link to="/wards">Wards</Link>
                 <Link to="/pharmacy">Pharmacy</Link>
+                <Link to="/patients">Patients</Link>
 
                 {/* Other navigation links can be added here later */}
 
