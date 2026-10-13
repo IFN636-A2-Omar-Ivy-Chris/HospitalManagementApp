@@ -123,4 +123,33 @@ const updateMedication = async (req, res) => {
         });
     }
 };
-module.exports = { getMedications, createMedication, updateMedication };
+
+const deleteMedication = async (req, res) => {
+    try {
+        const medication = await medicationRepository.deleteById(req.params.id);
+
+        if (!medication) {
+            return res.status(404).json({
+                message: "Medication not found",
+            });
+        }
+
+        res.status(200).json({
+            message: "Medication deleted successfully",
+            medication,
+        });
+    } catch (error) {
+        if (error.name === "CastError") {
+            return res.status(404).json({
+                message: "Medication not found",
+            });
+        }
+
+        console.error("Error deleting medication:", error);
+
+        res.status(500).json({
+            message: "Server error",
+        });
+    }
+};
+module.exports = { getMedications, createMedication, updateMedication, deleteMedication };

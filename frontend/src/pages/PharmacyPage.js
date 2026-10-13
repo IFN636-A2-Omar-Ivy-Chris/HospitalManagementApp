@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
 import MedicationForm from "../components/MedicationForm";
+import DeleteMedicationConfirmation from "../components/DeleteMedicationConfirmation";
 
 function PharmacyPage() {
   const [medications, setMedications] = useState([]);
@@ -9,7 +10,9 @@ function PharmacyPage() {
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
   const [medicationToEdit, setMedicationToEdit] = useState(null);
+  const [medicationToDelete, setMedicationToDelete] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
+  const [deleteError, setDeleteError] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
   const isPharmacist = user?.role === "pharmacist";
@@ -75,14 +78,44 @@ function PharmacyPage() {
     setSuccessMessage(`${response.data.name} updated`);
   };
 
+  const handleDelete = async () => {
+    try {
+      await axios.delete(
+        `/api/medications/${medicationToDelete._id}`,
+        authConfig(),
+      );
+
+      setMedications(
+        medications.filter(
+          (medication) => medication._id !== medicationToDelete._id,
+        ),
+      );
+      setSuccessMessage(`${medicationToDelete.name} deleted from the catalogue`);
+    } catch (error) {
+      setDeleteError(
+        error.response?.data?.message || "Unable to delete medication",
+      );
+    } finally {
+      setMedicationToDelete(null);
+    }
+  };
+
+  const openDeleteConfirmation = (medication) => {
+    setSuccessMessage("");
+    setDeleteError("");
+    setMedicationToDelete(medication);
+  };
+
   const openAddForm = () => {
     setSuccessMessage("");
+    setDeleteError("");
     setMedicationToEdit(null);
     setShowAddForm(true);
   };
 
   const openEditForm = (medication) => {
     setSuccessMessage("");
+    setDeleteError("");
     setShowAddForm(false);
     setMedicationToEdit(medication);
   };
@@ -101,6 +134,8 @@ function PharmacyPage() {
         </div>
 
         {successMessage && <p className="success-message">{successMessage}</p>}
+
+        {deleteError && <p className="error-message">{deleteError}</p>}
 
         {showAddForm && (
           <MedicationForm
@@ -150,6 +185,9 @@ function PharmacyPage() {
                     <td>
                       <button onClick={() => openEditForm(medication)}>
                         Edit
+                      </button>{" "}
+                      <button onClick={() => openDeleteConfirmation(medication)}>
+                        Delete
                       </button>
                     </td>
                   )}
@@ -157,6 +195,14 @@ function PharmacyPage() {
               ))}
             </tbody>
           </table>
+        )}
+
+        {medicationToDelete && (
+          <DeleteMedicationConfirmation
+            medication={medicationToDelete}
+            onCancel={() => setMedicationToDelete(null)}
+            onConfirm={handleDelete}
+          />
         )}
       </main>
     </>

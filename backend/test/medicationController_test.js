@@ -4,7 +4,8 @@ const MedicationRepository = require("../repositories/MedicationRepository");
 const {
   getMedications,
   createMedication,
-  updateMedication
+  updateMedication, 
+  deleteMedication
 } = require("../controllers/medicationController");
 const { expect } = chai;
 
@@ -281,6 +282,84 @@ describe("PHA-03 updateMedication", () => {
     const res = mockResponse();
 
     await updateMedication(req, res);
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: "Server error" })).to.be.true;
+  });
+});
+describe("PHA-04 deleteMedication", () => {
+  const mockResponse = () => ({
+    status: sinon.stub().returnsThis(),
+    json: sinon.spy(),
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it("should return 200 and the deleted medication", async () => {
+    const deleted = {
+      _id: "med123",
+      name: "Ibuprofen",
+      dosage: "400 mg",
+      form: "Tablet",
+      stockQuantity: 75,
+    };
+    const deleteStub = sinon
+      .stub(MedicationRepository.prototype, "deleteById")
+      .resolves(deleted);
+
+    const req = { params: { id: "med123" } };
+    const res = mockResponse();
+
+    await deleteMedication(req, res);
+
+    expect(deleteStub.calledOnceWith("med123")).to.be.true;
+    expect(res.status.calledWith(200)).to.be.true;
+    expect(
+      res.json.calledWithMatch({
+        message: "Medication deleted successfully",
+        medication: deleted,
+      }),
+    ).to.be.true;
+  });
+
+  it("should return 404 if the medication does not exist", async () => {
+    sinon.stub(MedicationRepository.prototype, "deleteById").resolves(null);
+
+    const req = { params: { id: "missing123" } };
+    const res = mockResponse();
+
+    await deleteMedication(req, res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(res.json.calledWithMatch({ message: "Medication not found" })).to.be
+      .true;
+  });
+
+  it("should return 404 if the id is not a valid id", async () => {
+    const castError = new Error("Cast to ObjectId failed");
+    castError.name = "CastError";
+    sinon.stub(MedicationRepository.prototype, "deleteById").rejects(castError);
+
+    const req = { params: { id: "not-an-id" } };
+    const res = mockResponse();
+
+    await deleteMedication(req, res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+  });
+
+  it("should return 500 if the repository throws an error", async () => {
+    sinon
+      .stub(MedicationRepository.prototype, "deleteById")
+      .rejects(new Error("Database error"));
+    sinon.stub(console, "error");
+
+    const req = { params: { id: "med123" } };
+    const res = mockResponse();
+
+    await deleteMedication(req, res);
 
     expect(res.status.calledWith(500)).to.be.true;
     expect(res.json.calledWithMatch({ message: "Server error" })).to.be.true;
