@@ -352,3 +352,16 @@ body {
     padding: 10px 16px;
     cursor: pointer;
 }
+
+.medication-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.medication-table th,
+.medication-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
