@@ -7,6 +7,7 @@ import WardPatientsPage from "./pages/WardPatientsPage";
 import PatientAdmissionPage from "./pages/PatientAdmissionPage";
 import PatientRecordPage from "./pages/PatientRecordPage";
 import PatientEditPage from "./pages/PatientEditPage";
+import PharmacyPage from "./pages/PharmacyPage";
 
 import "./App.css";
 
@@ -71,6 +72,14 @@ function App() {
                     element={
                         <ProtectedRoute>
                             <PatientEditPage />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/pharmacy"
+                    element={
+                        <ProtectedRoute>
+                            <PharmacyPage/>
                         </ProtectedRoute>
                     }
                 />
