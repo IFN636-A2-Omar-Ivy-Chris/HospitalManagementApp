@@ -8,10 +8,20 @@ function PharmacyPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [medicationToEdit, setMedicationToEdit] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
 
   const user = JSON.parse(localStorage.getItem("user"));
   const isPharmacist = user?.role === "pharmacist";
+
+  const authConfig = () => ({
+    headers: {
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
+
+  const sortByName = (list) =>
+    [...list].sort((a, b) => a.name.localeCompare(b.name));
 
   useEffect(() => {
     const getMedications = async () => {
@@ -36,26 +46,45 @@ function PharmacyPage() {
   }, []);
 
   const handleAdd = async (medicationData) => {
-    const token = localStorage.getItem("token");
-
-    const response = await axios.post("/api/medications", medicationData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    const updatedList = [...medications, response.data].sort((a, b) =>
-      a.name.localeCompare(b.name),
+    const response = await axios.post(
+      "/api/medications",
+      medicationData,
+      authConfig(),
     );
 
-    setMedications(updatedList);
+    setMedications(sortByName([...medications, response.data]));
     setShowAddForm(false);
     setSuccessMessage(`${response.data.name} added to the catalogue`);
   };
 
+  const handleEdit = async (medicationData) => {
+    const response = await axios.put(
+      `/api/medications/${medicationToEdit._id}`,
+      medicationData,
+      authConfig(),
+    );
+
+    setMedications(
+      sortByName(
+        medications.map((medication) =>
+          medication._id === response.data._id ? response.data : medication,
+        ),
+      ),
+    );
+    setMedicationToEdit(null);
+    setSuccessMessage(`${response.data.name} updated`);
+  };
+
   const openAddForm = () => {
     setSuccessMessage("");
+    setMedicationToEdit(null);
     setShowAddForm(true);
+  };
+
+  const openEditForm = (medication) => {
+    setSuccessMessage("");
+    setShowAddForm(false);
+    setMedicationToEdit(medication);
   };
 
   return (
@@ -66,7 +95,7 @@ function PharmacyPage() {
         <div className="page-header">
           <h1>Pharmacy</h1>
 
-          {isPharmacist && !showAddForm && (
+          {isPharmacist && !showAddForm && !medicationToEdit && (
             <button onClick={openAddForm}>Add Medication</button>
           )}
         </div>
@@ -78,6 +107,16 @@ function PharmacyPage() {
             submitLabel="Add Medication"
             onSubmit={handleAdd}
             onCancel={() => setShowAddForm(false)}
+          />
+        )}
+
+        {medicationToEdit && (
+          <MedicationForm
+            key={medicationToEdit._id}
+            initialValues={medicationToEdit}
+            submitLabel="Save Changes"
+            onSubmit={handleEdit}
+            onCancel={() => setMedicationToEdit(null)}
           />
         )}
 
@@ -97,6 +136,7 @@ function PharmacyPage() {
                 <th>Dosage</th>
                 <th>Form</th>
                 <th>Stock</th>
+                {isPharmacist && <th>Actions</th>}
               </tr>
             </thead>
             <tbody>
@@ -106,6 +146,13 @@ function PharmacyPage() {
                   <td>{medication.dosage}</td>
                   <td>{medication.form}</td>
                   <td>{medication.stockQuantity}</td>
+                  {isPharmacist && (
+                    <td>
+                      <button onClick={() => openEditForm(medication)}>
+                        Edit
+                      </button>
+                    </td>
+                  )}
                 </tr>
               ))}
             </tbody>
