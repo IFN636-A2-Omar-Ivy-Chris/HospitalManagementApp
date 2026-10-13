@@ -1,11 +1,17 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import MedicationForm from "../components/MedicationForm";
 
 function PharmacyPage() {
   const [medications, setMedications] = useState([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
+  const user = JSON.parse(localStorage.getItem("user"));
+  const isPharmacist = user?.role === "pharmacist";
 
   useEffect(() => {
     const getMedications = async () => {
@@ -28,12 +34,53 @@ function PharmacyPage() {
 
     getMedications();
   }, []);
+
+  const handleAdd = async (medicationData) => {
+    const token = localStorage.getItem("token");
+
+    const response = await axios.post("/api/medications", medicationData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const updatedList = [...medications, response.data].sort((a, b) =>
+      a.name.localeCompare(b.name),
+    );
+
+    setMedications(updatedList);
+    setShowAddForm(false);
+    setSuccessMessage(`${response.data.name} added to the catalogue`);
+  };
+
+  const openAddForm = () => {
+    setSuccessMessage("");
+    setShowAddForm(true);
+  };
+
   return (
     <>
       <Navbar />
 
       <main className="page-container">
-        <h1>Pharmacy</h1>
+        <div className="page-header">
+          <h1>Pharmacy</h1>
+
+          {isPharmacist && !showAddForm && (
+            <button onClick={openAddForm}>Add Medication</button>
+          )}
+        </div>
+
+        {successMessage && <p className="success-message">{successMessage}</p>}
+
+        {showAddForm && (
+          <MedicationForm
+            submitLabel="Add Medication"
+            onSubmit={handleAdd}
+            onCancel={() => setShowAddForm(false)}
+          />
+        )}
+
         {loading && <p>Loading medications...</p>}
 
         {error && <p className="error-message">{error}</p>}
