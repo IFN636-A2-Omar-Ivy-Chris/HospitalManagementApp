@@ -4,7 +4,8 @@ const MedicationRepository = require("../repositories/MedicationRepository");
 const {
   getMedications,
   createMedication,
-  updateMedication
+  updateMedication, 
+  deleteMedication
 } = require("../controllers/medicationController");
 const { expect } = chai;
 
