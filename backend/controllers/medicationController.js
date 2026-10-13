@@ -1,5 +1,32 @@
 const MedicationRepository = require("../repositories/MedicationRepository");
+
 const medicationRepository = new MedicationRepository();
+
+const validateMedication = (data) => {
+    const { name, dosage, form, stockQuantity } = data;
+
+    if (!name || typeof name !== "string" || name.trim() === "") {
+        return "Name is required";
+    }
+
+    if (!dosage || typeof dosage !== "string" || dosage.trim() === "") {
+        return "Dosage is required";
+    }
+
+    if (!form || typeof form !== "string" || form.trim() === "") {
+        return "Form is required";
+    }
+
+    if (stockQuantity === undefined || stockQuantity === null || stockQuantity === "") {
+        return "Stock quantity is required";
+    }
+
+    if (!Number.isInteger(Number(stockQuantity)) || Number(stockQuantity) < 0) {
+        return "Stock quantity must be a whole number of zero or more";
+    }
+
+    return null;
+};
 
 const getMedications = async (req, res) => {
     try {
@@ -15,4 +42,39 @@ const getMedications = async (req, res) => {
     }
 };
 
-module.exports = {getMedications};
+const createMedication = async (req, res) => {
+    try {
+        const validationError = validateMedication(req.body);
+
+        if (validationError) {
+            return res.status(400).json({
+                message: validationError,
+            });
+        }
+
+        const { name, dosage, form, stockQuantity } = req.body;
+
+        const medication = await medicationRepository.create({
+            name,
+            dosage,
+            form,
+            stockQuantity: Number(stockQuantity),
+        });
+
+        res.status(201).json(medication);
+    } catch (error) {
+        if (error.code === 11000) {
+            return res.status(409).json({
+                message: "A medication with this name already exists",
+            });
+        }
+
+        console.error("Error creating medication:", error);
+
+        res.status(500).json({
+            message: "Server error",
+        });
+    }
+};
+
+module.exports = { getMedications, createMedication };
