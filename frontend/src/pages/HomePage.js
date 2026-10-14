@@ -170,9 +170,20 @@ function HomePage() {
                     ))}
                 </div>
 
-                {/* On-call, news and notes will be added in later stories */}
                 <section>
                     <h2>On-call</h2>
+
+                    {loading && (
+                        <p className="empty-message">Loading on-call doctors...</p>
+                    )}
+
+                    {!loading && error && (
+                        <p className="error-message">Unable to load on-call doctors</p>
+                    )}
+
+                    {!loading && !error && onCallDoctors.length === 0 && (
+                        <p className="empty-message">No doctors are currently on call</p>
+                    )}
 
                     <div className="oncall-list">
                         {onCallDoctors.map((doctor) => (
