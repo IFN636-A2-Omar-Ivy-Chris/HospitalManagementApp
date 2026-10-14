@@ -16,6 +16,10 @@ class PrescriptionRepository extends BaseRepository {
     isMedicationPrescribed(medicationId) {
         return this.exists({ medication: medicationId });
     }
+
+    findByIdWithMedication(id) {
+        return this.findById(id).populate("medication", "name dosage form");
+    }
 }
 
 module.exports = PrescriptionRepository;
