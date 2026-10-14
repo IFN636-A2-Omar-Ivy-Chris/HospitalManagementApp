@@ -6,6 +6,8 @@ const MedicationRepository = require("../repositories/MedicationRepository");
 const {
   getPatientMedications,
   prescribeMedication,
+  updatePrescription,
+  removePrescription
 } = require("../controllers/prescriptionController");
 const { expect } = chai;
 
@@ -262,6 +264,195 @@ describe("MED-02 prescribeMedication", () => {
     const res = mockResponse();
 
     await prescribeMedication(mockRequest(), res);
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: "Server error" })).to.be.true;
+  });
+});
+
+describe("MED-03 updatePrescription", () => {
+  const validBody = { dosage: "2 tablets", frequency: "Every 8 hours" };
+
+  const mockRequest = (body = validBody) => ({
+    params: { patientId: "patient123", prescriptionId: "rx1" },
+    body,
+    user: { id: "doctor123", role: "doctor" },
+  });
+
+  const mockResponse = () => ({
+    status: sinon.stub().returnsThis(),
+    json: sinon.spy(),
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it("should return 200 and the updated prescription", async () => {
+    const updated = {
+      _id: "rx1",
+      medication: { name: "Paracetamol" },
+      ...validBody,
+    };
+    sinon
+      .stub(PrescriptionRepository.prototype, "findById")
+      .resolves({ _id: "rx1", patient: "patient123" });
+    const updateStub = sinon
+      .stub(PrescriptionRepository.prototype, "updateById")
+      .resolves({});
+    sinon
+      .stub(PrescriptionRepository.prototype, "findByIdWithMedication")
+      .resolves(updated);
+
+    const res = mockResponse();
+
+    await updatePrescription(mockRequest(), res);
+
+    expect(updateStub.calledOnceWith("rx1", validBody)).to.be.true;
+    expect(res.status.calledWith(200)).to.be.true;
+    expect(res.json.calledWith(updated)).to.be.true;
+  });
+
+  it("should return 400 if the dosage is empty", async () => {
+    const updateStub = sinon.stub(PrescriptionRepository.prototype, "updateById");
+
+    const res = mockResponse();
+
+    await updatePrescription(mockRequest({ ...validBody, dosage: "" }), res);
+
+    expect(res.status.calledWith(400)).to.be.true;
+    expect(res.json.calledWithMatch({ message: "Dosage is required" })).to.be
+      .true;
+    expect(updateStub.notCalled).to.be.true;
+  });
+
+  it("should return 404 if the prescription does not exist", async () => {
+    sinon.stub(PrescriptionRepository.prototype, "findById").resolves(null);
+    const updateStub = sinon.stub(PrescriptionRepository.prototype, "updateById");
+
+    const res = mockResponse();
+
+    await updatePrescription(mockRequest(), res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(res.json.calledWithMatch({ message: "Prescription not found" })).to
+      .be.true;
+    expect(updateStub.notCalled).to.be.true;
+  });
+
+  it("should return 404 if the prescription belongs to another patient", async () => {
+    sinon
+      .stub(PrescriptionRepository.prototype, "findById")
+      .resolves({ _id: "rx1", patient: "otherPatient" });
+    const updateStub = sinon.stub(PrescriptionRepository.prototype, "updateById");
+
+    const res = mockResponse();
+
+    await updatePrescription(mockRequest(), res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(updateStub.notCalled).to.be.true;
+  });
+
+  it("should return 500 if the repository throws an error", async () => {
+    sinon
+      .stub(PrescriptionRepository.prototype, "findById")
+      .rejects(new Error("Database error"));
+    sinon.stub(console, "error");
+
+    const res = mockResponse();
+
+    await updatePrescription(mockRequest(), res);
+
+    expect(res.status.calledWith(500)).to.be.true;
+    expect(res.json.calledWithMatch({ message: "Server error" })).to.be.true;
+  });
+});
+
+describe("MED-04 removePrescription", () => {
+  const mockRequest = () => ({
+    params: { patientId: "patient123", prescriptionId: "rx1" },
+    user: { id: "doctor123", role: "doctor" },
+  });
+
+  const mockResponse = () => ({
+    status: sinon.stub().returnsThis(),
+    json: sinon.spy(),
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it("should return 200 and remove the prescription", async () => {
+    const prescription = { _id: "rx1", patient: "patient123" };
+    sinon
+      .stub(PrescriptionRepository.prototype, "findById")
+      .resolves(prescription);
+    const deleteStub = sinon
+      .stub(PrescriptionRepository.prototype, "deleteById")
+      .resolves(prescription);
+
+    const res = mockResponse();
+
+    await removePrescription(mockRequest(), res);
+
+    expect(deleteStub.calledOnceWith("rx1")).to.be.true;
+    expect(res.status.calledWith(200)).to.be.true;
+    expect(res.json.calledWithMatch({ message: "Prescription removed" })).to.be
+      .true;
+  });
+
+  it("should return 404 if the prescription does not exist", async () => {
+    sinon.stub(PrescriptionRepository.prototype, "findById").resolves(null);
+    const deleteStub = sinon.stub(PrescriptionRepository.prototype, "deleteById");
+
+    const res = mockResponse();
+
+    await removePrescription(mockRequest(), res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(deleteStub.notCalled).to.be.true;
+  });
+
+  it("should return 404 if the prescription belongs to another patient", async () => {
+    sinon
+      .stub(PrescriptionRepository.prototype, "findById")
+      .resolves({ _id: "rx1", patient: "otherPatient" });
+    const deleteStub = sinon.stub(PrescriptionRepository.prototype, "deleteById");
+
+    const res = mockResponse();
+
+    await removePrescription(mockRequest(), res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+    expect(deleteStub.notCalled).to.be.true;
+  });
+
+  it("should return 404 if the prescription id is not a valid id", async () => {
+    const castError = new Error("Cast to ObjectId failed");
+    castError.name = "CastError";
+    sinon.stub(PrescriptionRepository.prototype, "findById").rejects(castError);
+
+    const res = mockResponse();
+
+    await removePrescription(mockRequest(), res);
+
+    expect(res.status.calledWith(404)).to.be.true;
+  });
+
+  it("should return 500 if the repository throws an error", async () => {
+    sinon
+      .stub(PrescriptionRepository.prototype, "findById")
+      .resolves({ _id: "rx1", patient: "patient123" });
+    sinon
+      .stub(PrescriptionRepository.prototype, "deleteById")
+      .rejects(new Error("Database error"));
+    sinon.stub(console, "error");
+
+    const res = mockResponse();
+
+    await removePrescription(mockRequest(), res);
 
     expect(res.status.calledWith(500)).to.be.true;
     expect(res.json.calledWithMatch({ message: "Server error" })).to.be.true;

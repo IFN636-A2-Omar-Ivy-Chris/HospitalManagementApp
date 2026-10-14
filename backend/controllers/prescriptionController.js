@@ -22,22 +22,35 @@ const findOrNull = async (repository, id) => {
 const isBlank = (value) =>
     !value || typeof value !== "string" || value.trim() === "";
 
-const validatePrescription = (data) => {
-    const { medication, dosage, frequency } = data;
-
-    if (isBlank(medication)) {
-        return "Medication is required";
-    }
-
-    if (isBlank(dosage)) {
+const validateDosageAndFrequency = (data) => {
+    if (isBlank(data.dosage)) {
         return "Dosage is required";
     }
 
-    if (isBlank(frequency)) {
+    if (isBlank(data.frequency)) {
         return "Frequency is required";
     }
 
     return null;
+};
+
+const validatePrescription = (data) => {
+    if (isBlank(data.medication)) {
+        return "Medication is required";
+    }
+
+    return validateDosageAndFrequency(data);
+};
+
+// Returns the prescription only if it exists and belongs to this patient
+const findPatientPrescription = async (prescriptionId, patientId) => {
+    const prescription = await findOrNull(prescriptionRepository, prescriptionId);
+
+    if (!prescription || String(prescription.patient) !== patientId) {
+        return null;
+    }
+
+    return prescription;
 };
 
 const getPatientMedications = async (req, res) => {
@@ -120,4 +133,78 @@ const prescribeMedication = async (req, res) => {
     }
 };
 
-module.exports = { getPatientMedications, prescribeMedication };
+const updatePrescription = async (req, res) => {
+    try {
+        const validationError = validateDosageAndFrequency(req.body);
+
+        if (validationError) {
+            return res.status(400).json({
+                message: validationError,
+            });
+        }
+
+        const prescription = await findPatientPrescription(
+            req.params.prescriptionId,
+            req.params.patientId,
+        );
+
+        if (!prescription) {
+            return res.status(404).json({
+                message: "Prescription not found",
+            });
+        }
+
+        await prescriptionRepository.updateById(req.params.prescriptionId, {
+            dosage: req.body.dosage.trim(),
+            frequency: req.body.frequency.trim(),
+        });
+
+        const updatedPrescription =
+            await prescriptionRepository.findByIdWithMedication(
+                req.params.prescriptionId,
+            );
+
+        res.status(200).json(updatedPrescription);
+    } catch (error) {
+        console.error("Error updating prescription:", error);
+
+        res.status(500).json({
+            message: "Server error",
+        });
+    }
+};
+
+const removePrescription = async (req, res) => {
+    try {
+        const prescription = await findPatientPrescription(
+            req.params.prescriptionId,
+            req.params.patientId,
+        );
+
+        if (!prescription) {
+            return res.status(404).json({
+                message: "Prescription not found",
+            });
+        }
+
+        await prescriptionRepository.deleteById(req.params.prescriptionId);
+
+        res.status(200).json({
+            message: "Prescription removed",
+            prescription,
+        });
+    } catch (error) {
+        console.error("Error removing prescription:", error);
+
+        res.status(500).json({
+            message: "Server error",
+        });
+    }
+};
+
+module.exports = {
+    getPatientMedications,
+    prescribeMedication,
+    updatePrescription,
+    removePrescription,
+};
