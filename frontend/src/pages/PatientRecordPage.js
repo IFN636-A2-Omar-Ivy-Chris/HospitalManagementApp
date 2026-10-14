@@ -5,6 +5,8 @@ import Navbar from "../components/Navbar";
 import DischargeConfirmation from "../components/DischargeConfirmation";
 import TransferPatientModal from "../components/TransferPatientModal";
 import PrescribeMedicationForm from "../components/PrescribeMedicationForm";
+import EditPrescriptionForm from "../components/EditPrescriptionForm";
+import RemovePrescriptionConfirmation from "../components/RemovePrescriptionConfirmation";
 
 function PatientRecordPage() {
     const { patientId } = useParams();
@@ -23,6 +25,9 @@ function PatientRecordPage() {
     const [medicationsError, setMedicationsError] = useState("");
     const [showPrescribeForm, setShowPrescribeForm] = useState(false);
     const [prescriptionSuccess, setPrescriptionSuccess] = useState("");
+    const [prescriptionError, setPrescriptionError] = useState("");
+    const [prescriptionToEdit, setPrescriptionToEdit] = useState(null);
+    const [prescriptionToRemove, setPrescriptionToRemove] = useState(null);
 
     const user = JSON.parse(localStorage.getItem("user"));
     const isDoctor = user?.role === "doctor";
@@ -190,6 +195,76 @@ function PatientRecordPage() {
         );
     };
 
+
+    const openEditPrescription = (prescription) => {
+        setPrescriptionSuccess("");
+        setPrescriptionError("");
+        setPrescriptionToEdit(prescription);
+    };
+
+    const openRemovePrescription = (prescription) => {
+        setPrescriptionSuccess("");
+        setPrescriptionError("");
+        setPrescriptionToRemove(prescription);
+    };
+
+    const handleUpdatePrescription = async (prescriptionData) => {
+        const token = localStorage.getItem("token");
+
+        const response = await axios.put(
+            `/api/patients/${patientId}/medications/${prescriptionToEdit._id}`,
+            prescriptionData,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        );
+
+        setPrescriptions(
+            prescriptions.map((prescription) =>
+                prescription._id === response.data._id
+                    ? response.data
+                    : prescription,
+            ),
+        );
+        setPrescriptionToEdit(null);
+        setPrescriptionSuccess(
+            `${response.data.medication?.name || "Medication"} updated`,
+        );
+    };
+
+    const handleRemovePrescription = async () => {
+        try {
+            const token = localStorage.getItem("token");
+
+            await axios.delete(
+                `/api/patients/${patientId}/medications/${prescriptionToRemove._id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                    },
+                },
+            );
+
+            setPrescriptions(
+                prescriptions.filter(
+                    (prescription) =>
+                        prescription._id !== prescriptionToRemove._id,
+                ),
+            );
+            setPrescriptionSuccess(
+                `${prescriptionToRemove.medication?.name || "Medication"} removed`,
+            );
+        } catch (error) {
+            setPrescriptionError(
+                error.response?.data?.message || "Unable to remove medication",
+            );
+        } finally {
+            setPrescriptionToRemove(null);
+        }
+    };
+
     return (
         <>
             <Navbar />
@@ -265,6 +340,10 @@ function PatientRecordPage() {
                         <p className="success-message">{prescriptionSuccess}</p>
                     )}
 
+                    {prescriptionError && (
+                        <p className="error-message">{prescriptionError}</p>
+                    )}
+
                     {showPrescribeForm && (
                         <PrescribeMedicationForm
                             onSubmit={handlePrescribe}
@@ -297,6 +376,39 @@ function PatientRecordPage() {
                                         ({prescription.medication?.form}) -{" "}
                                         {prescription.dosage},{" "}
                                         {prescription.frequency}
+                                        {isDoctor && (
+                                            <>
+                                                {" "}
+                                                <button
+                                                    onClick={() =>
+                                                        openEditPrescription(
+                                                            prescription,
+                                                        )
+                                                    }
+                                                >
+                                                    Edit
+                                                </button>{" "}
+                                                <button
+                                                    onClick={() =>
+                                                        openRemovePrescription(
+                                                            prescription,
+                                                        )
+                                                    }
+                                                >
+                                                    Remove
+                                                </button>
+                                            </>
+                                        )}
+                                        {prescriptionToEdit?._id ===
+                                            prescription._id && (
+                                            <EditPrescriptionForm
+                                                prescription={prescription}
+                                                onSubmit={handleUpdatePrescription}
+                                                onCancel={() =>
+                                                    setPrescriptionToEdit(null)
+                                                }
+                                            />
+                                        )}
                                     </li>
                                 ))}
                             </ul>
@@ -328,6 +440,15 @@ function PatientRecordPage() {
                         onConfirm={handleDischarge}
                     />
                 )}
+
+                {prescriptionToRemove && (
+                    <RemovePrescriptionConfirmation
+                        prescription={prescriptionToRemove}
+                        onCancel={() => setPrescriptionToRemove(null)}
+                        onConfirm={handleRemovePrescription}
+                    />
+                )}
+                
                 {showTransferModal && (
                     <TransferPatientModal
                         patient={patient}
