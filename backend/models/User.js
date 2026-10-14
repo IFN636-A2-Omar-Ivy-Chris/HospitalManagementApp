@@ -19,6 +19,17 @@ const userSchema = new mongoose.Schema({
         enum: ["doctor", "nurse", "pharmacist"],
         required: true,
     },
+    // On-call information (only used for doctors, so not required)
+    specialty: {
+        type: String,
+    },
+    contactNumber: {
+        type: String,
+    },
+    onCall: {
+        type: Boolean,
+        default: false,
+    },
 });
 
 module.exports = mongoose.model("User", userSchema);
