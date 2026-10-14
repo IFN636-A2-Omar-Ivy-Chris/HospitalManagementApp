@@ -126,6 +126,10 @@ body {
     font-weight: bold;
 }
 
+.empty-message {
+    color: #777;
+}
+
 .news-list {
     display: flex;
     flex-direction: column;
