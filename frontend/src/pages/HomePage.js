@@ -8,6 +8,7 @@ function HomePage() {
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(true);
     const [news, setNews] = useState([]);
+    const [onCallDoctors, setOnCallDoctors] = useState([]);
     const [notes, setNotes] = useState([]);
     const [newNote, setNewNote] = useState("");
     const [editingNoteId, setEditingNoteId] = useState(null);
@@ -28,6 +29,7 @@ function HomePage() {
 
                 setLinks(response.data.links);
                 setNews(response.data.news);
+                setOnCallDoctors(response.data.onCall);
                 setNotes(response.data.notes);
             } catch (error) {
                 setError("Unable to load home page");
@@ -171,6 +173,16 @@ function HomePage() {
                 {/* On-call, news and notes will be added in later stories */}
                 <section>
                     <h2>On-call</h2>
+
+                    <div className="oncall-list">
+                        {onCallDoctors.map((doctor) => (
+                            <div className="oncall-item" key={doctor._id}>
+                                <strong>{doctor.name}</strong>
+                                <span>{doctor.specialty}</span>
+                                <span>{doctor.contactNumber}</span>
+                            </div>
+                        ))}
+                    </div>
                 </section>
 
                 <section>
