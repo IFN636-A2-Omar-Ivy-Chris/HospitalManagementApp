@@ -66,6 +66,16 @@ MONGO_URI=<MongoDB Atlas connection string>
 JWT_SECRET=<JWT secret>
 ```
 
+Add sample hospital news for the home page (run once):
+
+```bash
+cd backend
+npm run seed:news
+cd ..
+```
+
+This replaces any existing news with three sample items.
+
 Start the application from the project root:
 
 ```bash

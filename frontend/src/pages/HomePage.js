@@ -6,6 +6,8 @@ import Navbar from "../components/Navbar";
 function HomePage() {
     const [links, setLinks] = useState([]);
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
+    const [news, setNews] = useState([]);
     const [notes, setNotes] = useState([]);
     const [newNote, setNewNote] = useState("");
     const [editingNoteId, setEditingNoteId] = useState(null);
@@ -25,9 +27,13 @@ function HomePage() {
                 });
 
                 setLinks(response.data.links);
+                setNews(response.data.news);
                 setNotes(response.data.notes);
             } catch (error) {
                 setError("Unable to load home page");
+            } finally {
+                // Loading is finished whether it worked or not
+                setLoading(false);
             }
         };
 
@@ -169,6 +175,31 @@ function HomePage() {
 
                 <section>
                     <h2>News</h2>
+
+                    {loading && <p className="empty-message">Loading news...</p>}
+
+                    {!loading && error && (
+                        <p className="error-message">Unable to load news</p>
+                    )}
+
+                    {!loading && !error && news.length === 0 && (
+                        <p className="empty-message">No news yet</p>
+                    )}
+
+                    <div className="news-list">
+                        {news.map((item) => (
+                            <div className="news-item" key={item._id}>
+                                {/* title is kept on one line (see .news-title in App.css) */}
+                                <h3 className="news-title" title={item.title}>
+                                    {item.title}
+                                </h3>
+                                <p className="news-date">
+                                    {new Date(item.publishedAt).toLocaleDateString()}
+                                </p>
+                                <p>{item.body}</p>
+                            </div>
+                        ))}
+                    </div>
                 </section>
 
                 <section>

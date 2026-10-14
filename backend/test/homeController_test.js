@@ -2,6 +2,7 @@ const chai = require('chai');
 const sinon = require('sinon');
 const HomePageFacade = require('../facades/HomePageFacade');
 const Note = require('../models/Note');
+const NewsRepository = require('../repositories/NewsRepository');
 const { getHomePage } = require('../controllers/homeController');
 const { expect } = chai;
 
@@ -10,6 +11,7 @@ describe('GetHomePage Function Test', async () => {
   // The Facade reads notes from the database, so replace it with a fake one
   beforeEach(() => {
     sinon.stub(Note, 'find').resolves([]);
+    sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
   });
 
   afterEach(() => {

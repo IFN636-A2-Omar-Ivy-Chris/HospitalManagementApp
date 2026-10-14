@@ -126,6 +126,37 @@ body {
     font-weight: bold;
 }
 
+.empty-message {
+    color: #777;
+}
+
+.news-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.news-item {
+    background-color: white;
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+/* Keep long titles on one line and end them with "..." */
+.news-title {
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.news-date {
+    margin: 4px 0;
+    color: #777;
+    font-size: 14px;
+}
+
 .note-form {
     display: flex;
     gap: 10px;
