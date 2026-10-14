@@ -2,6 +2,7 @@ const { expect } = require('chai');
 const sinon = require('sinon');
 const HomePageFacade = require('../facades/HomePageFacade');
 const Note = require('../models/Note');
+const NewsRepository = require('../repositories/NewsRepository');
 
 describe('HomePageFacade - navigation links by role', () => {
   const facade = new HomePageFacade();
@@ -9,6 +10,7 @@ describe('HomePageFacade - navigation links by role', () => {
   // The Facade reads notes from the database, so replace it with a fake one
   beforeEach(() => {
     sinon.stub(Note, 'find').resolves([]);
+    sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
   });
 
   afterEach(() => {
@@ -65,6 +67,11 @@ describe('HomePageFacade - navigation links by role', () => {
 
 describe('HomePageFacade - personal notes', () => {
   const facade = new HomePageFacade();
+
+  // Notes tests do not need real news
+  beforeEach(() => {
+    sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
+  });
 
   afterEach(() => {
     sinon.restore();
