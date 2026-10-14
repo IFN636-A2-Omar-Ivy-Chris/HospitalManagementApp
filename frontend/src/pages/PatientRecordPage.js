@@ -4,6 +4,7 @@ import axios from "axios";
 import Navbar from "../components/Navbar";
 import DischargeConfirmation from "../components/DischargeConfirmation";
 import TransferPatientModal from "../components/TransferPatientModal";
+import PrescribeMedicationForm from "../components/PrescribeMedicationForm";
 
 function PatientRecordPage() {
     const { patientId } = useParams();
@@ -20,6 +21,11 @@ function PatientRecordPage() {
     const [prescriptions, setPrescriptions] = useState([]);
     const [medicationsLoading, setMedicationsLoading] = useState(true);
     const [medicationsError, setMedicationsError] = useState("");
+    const [showPrescribeForm, setShowPrescribeForm] = useState(false);
+    const [prescriptionSuccess, setPrescriptionSuccess] = useState("");
+
+    const user = JSON.parse(localStorage.getItem("user"));
+    const isDoctor = user?.role === "doctor";
 
     useEffect(() => {
         const getPatient = async () => {
@@ -158,6 +164,32 @@ function PatientRecordPage() {
             }
         }
     };
+
+        const openPrescribeForm = () => {
+        setPrescriptionSuccess("");
+        setShowPrescribeForm(true);
+    };
+
+    const handlePrescribe = async (prescriptionData) => {
+        const token = localStorage.getItem("token");
+
+        const response = await axios.post(
+            `/api/patients/${patientId}/medications`,
+            prescriptionData,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            },
+        );
+
+        setPrescriptions([...prescriptions, response.data]);
+        setShowPrescribeForm(false);
+        setPrescriptionSuccess(
+            `${response.data.medication?.name || "Medication"} prescribed`,
+        );
+    };
+
     return (
         <>
             <Navbar />
@@ -224,8 +256,21 @@ function PatientRecordPage() {
                 <section className="record-section">
                     <div className="record-section-header">
                         <h2>Current Medications</h2>
-                        <button>Edit</button>
+                        {isDoctor && !showPrescribeForm && (
+                            <button onClick={openPrescribeForm}>Prescribe</button>
+                        )}
                     </div>
+
+                    {prescriptionSuccess && (
+                        <p className="success-message">{prescriptionSuccess}</p>
+                    )}
+
+                    {showPrescribeForm && (
+                        <PrescribeMedicationForm
+                            onSubmit={handlePrescribe}
+                            onCancel={() => setShowPrescribeForm(false)}
+                        />
+                    )}
 
                     {medicationsLoading && <p>Loading medications...</p>}
 
