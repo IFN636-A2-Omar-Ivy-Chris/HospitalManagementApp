@@ -100,7 +100,7 @@ function PatientsPage() {
                     <td>{patient.gender || '-'}</td>
 
                     <td>
-                      {patient.wardId?.name || 'Unknown'}
+                      {patient.ward?.name || 'Unknown'}
                     </td>
                   </tr>
                 ))}
