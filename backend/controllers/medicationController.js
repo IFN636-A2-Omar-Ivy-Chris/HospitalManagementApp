@@ -1,6 +1,8 @@
 const MedicationRepository = require("../repositories/MedicationRepository");
+const PrescriptionRepository = require("../repositories/PrescriptionRepository");
 
 const medicationRepository = new MedicationRepository();
+const prescriptionRepository = new PrescriptionRepository();
 
 const validateMedication = (data) => {
     const { name, dosage, form, stockQuantity } = data;
@@ -126,6 +128,17 @@ const updateMedication = async (req, res) => {
 
 const deleteMedication = async (req, res) => {
     try {
+        const isPrescribed = await prescriptionRepository.isMedicationPrescribed(
+            req.params.id,
+        );
+
+        if (isPrescribed) {
+            return res.status(409).json({
+                message:
+                    "This medication is prescribed to a patient and cannot be deleted",
+            });
+        }
+
         const medication = await medicationRepository.deleteById(req.params.id);
 
         if (!medication) {
