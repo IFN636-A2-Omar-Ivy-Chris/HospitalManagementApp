@@ -94,3 +94,46 @@ describe('HomePageFacade - personal notes', () => {
     expect(data.notes).to.deep.equal(myNotes);
   });
 });
+
+describe('HomePageFacade - news', () => {
+  const facade = new HomePageFacade();
+
+  // News tests do not need real notes
+  beforeEach(() => {
+    sinon.stub(Note, 'find').resolves([]);
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('returns the news from the news subsystem', async () => {
+    const newsItems = [{ _id: 'news1', title: 'Flu clinic', body: 'Room 2.14', publishedAt: new Date('2026-10-01') }];
+    sinon.stub(NewsRepository.prototype, 'findAll').resolves(newsItems);
+
+    const data = await facade.getHomePageData('doctor', 'user123');
+
+    expect(data.news).to.deep.equal(newsItems);
+  });
+
+  it('every role sees the same news', async () => {
+    const newsItems = [{ _id: 'news1', title: 'Flu clinic', body: 'Room 2.14', publishedAt: new Date('2026-10-01') }];
+    sinon.stub(NewsRepository.prototype, 'findAll').resolves(newsItems);
+
+    const doctorData = await facade.getHomePageData('doctor', 'user1');
+    const nurseData = await facade.getHomePageData('nurse', 'user2');
+    const pharmacistData = await facade.getHomePageData('pharmacist', 'user3');
+
+    expect(doctorData.news).to.deep.equal(newsItems);
+    expect(nurseData.news).to.deep.equal(newsItems);
+    expect(pharmacistData.news).to.deep.equal(newsItems);
+  });
+
+  it('returns an empty list when there is no news', async () => {
+    sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
+
+    const data = await facade.getHomePageData('nurse', 'user123');
+
+    expect(data.news).to.deep.equal([]);
+  });
+});
