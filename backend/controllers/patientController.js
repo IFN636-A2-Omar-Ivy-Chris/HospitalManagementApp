@@ -196,6 +196,22 @@ const transferPatient = async (req, res) => {
         });
     }
 };
+const getAllPatients = async (req, res) => {
+  try {
+    const patients = await Patient.find({})
+      .select('name dateOfBirth gender wardId')
+      .populate('ward', 'name');
+
+    res.status(200).json(patients);
+
+  } catch (error) {
+    console.error('Error retrieving patients:', error);
+
+    res.status(500).json({
+      message: 'Unable to retrieve patients'
+    });
+  }
+};
 
 module.exports = {
     getPatientsByWard,
@@ -204,4 +220,5 @@ module.exports = {
     updatePatient,
     dischargePatient,
     transferPatient,
+    getAllPatients
 };

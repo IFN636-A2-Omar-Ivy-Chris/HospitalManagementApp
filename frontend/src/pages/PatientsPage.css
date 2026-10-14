@@ -1,0 +1,54 @@
+
+/* Container allows horizontal scrolling on small screens */
+.patients-table-container {
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+/* Patient table */
+.patients-table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+/* Table headers */
+.patients-table th {
+  padding: 12px 16px;
+  text-align: left;
+  background-color: #f2f2f2;
+  border-bottom: 2px solid #ddd;
+  font-weight: bold;
+}
+
+/* Table cells */
+.patients-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ddd;
+}
+
+/* Alternate row colours */
+.patients-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+/* Highlight row on hover */
+.patients-table tbody tr:hover {
+  background-color: #f0f5fa;
+}
+
+/* Patient name links */
+.patients-table a {
+  color: #0066cc;
+  text-decoration: none;
+}
+
+.patients-table a:hover {
+  text-decoration: underline;
+}
+
+/* Allow long MongoDB IDs to wrap */
+.patients-table td:nth-child(2) {
+  overflow-wrap: anywhere;
+}
