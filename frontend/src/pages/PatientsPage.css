@@ -52,3 +52,50 @@
 .patients-table td:nth-child(2) {
   overflow-wrap: anywhere;
 }
+
+
+/* Page header with title and search */
+.patients-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+/* Search container */
+.patients-search-container {
+  display: flex;
+  align-items: center;
+}
+
+/* Search input */
+.patients-search-input {
+  width: 300px;
+  max-width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  outline: none;
+}
+
+/* Highlight search input when selected */
+.patients-search-input:focus {
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+}
+
+/* Responsive layout for smaller screens */
+@media (max-width: 600px) {
+  .patients-page-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .patients-search-input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+

@@ -9,6 +9,7 @@ function PatientsPage() {
   const [patients, setPatients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     const getPatients = async () => {
@@ -53,7 +54,20 @@ function PatientsPage() {
       <Navbar />
 
       <main className="page-container">
-        <h1>Patients</h1>
+        <div className="patients-page-header">
+          <h1>Patients</h1>
+
+          <div className="patients-search-container">
+            <input
+              type="search"
+              className="patients-search-input"
+              placeholder="Search by name or ID..."
+              aria-label="Search patients by name or ID"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
+        </div>
 
         {loading && (
           <p role="status">Loading patients...</p>
