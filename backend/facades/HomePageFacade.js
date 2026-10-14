@@ -1,6 +1,9 @@
-const Note = require("../models/Note");
+const NoteRepository = require("../repositories/NoteRepository");
 
 class HomePageFacade{
+    // Subsystems (Composition): the Facade uses a repository for each kind of data
+    #noteRepository = new NoteRepository();
+
     // Private (#): only this class can call it
     // Each link lists the roles that are allowed to see it
     #getNavLinks(role){
@@ -22,9 +25,9 @@ class HomePageFacade{
         return [];
     }
 
-    // Only find the notes written by this user
+    // Ask the note subsystem for this user's notes
     #getNotes(userId){
-        return Note.find({ user: userId });
+        return this.#noteRepository.findByUser(userId);
     }
 
     // Entry point of the Facade: return all data needed for the homepage at once
