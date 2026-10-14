@@ -8,6 +8,7 @@ const patientRoutes = require("./routes/patientRoutes");
 const homeRoutes = require("./routes/homeRoutes");
 const noteRoutes = require("./routes/noteRoutes");
 const medicationRoutes = require("./routes/medicationRoutes");
+const prescriptionRoutes = require("./routes/prescriptionRoutes");
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/api/wards", wardRoutes);
 app.use("/api/patients", patientRoutes);
+app.use("/api/patients/:patientId/medications", prescriptionRoutes);
 app.use("/api/home", homeRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/medications", medicationRoutes);

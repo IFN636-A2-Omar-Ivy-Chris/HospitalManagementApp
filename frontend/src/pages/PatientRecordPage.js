@@ -17,6 +17,9 @@ function PatientRecordPage() {
     const [patientToTransfer, setPatientToTransfer] = useState(null);
     const [transferSuccess, setTransferSuccess] = useState("");
     const [transferError, setTransferError] = useState("");
+    const [prescriptions, setPrescriptions] = useState([]);
+    const [medicationsLoading, setMedicationsLoading] = useState(true);
+    const [medicationsError, setMedicationsError] = useState("");
 
     useEffect(() => {
         const getPatient = async () => {
@@ -39,6 +42,32 @@ function PatientRecordPage() {
         };
 
         getPatient();
+    }, [patientId]);
+
+
+    useEffect(() => {
+        const getPrescriptions = async () => {
+            try {
+                const token = localStorage.getItem("token");
+
+                const response = await axios.get(
+                    `/api/patients/${patientId}/medications`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`,
+                        },
+                    },
+                );
+
+                setPrescriptions(response.data);
+            } catch (error) {
+                setMedicationsError("Unable to load medications");
+            } finally {
+                setMedicationsLoading(false);
+            }
+        };
+
+        getPrescriptions();
     }, [patientId]);
 
     if (error) {
@@ -198,7 +227,35 @@ function PatientRecordPage() {
                         <button>Edit</button>
                     </div>
 
-                    <p>No medications recorded.</p>
+                    {medicationsLoading && <p>Loading medications...</p>}
+
+                    {medicationsError && (
+                        <p className="error-message">{medicationsError}</p>
+                    )}
+
+                    {!medicationsLoading &&
+                        !medicationsError &&
+                        prescriptions.length === 0 && (
+                            <p>No medications recorded.</p>
+                        )}
+
+                    {!medicationsLoading &&
+                        !medicationsError &&
+                        prescriptions.length > 0 && (
+                            <ul className="medication-list">
+                                {prescriptions.map((prescription) => (
+                                    <li key={prescription._id}>
+                                        <strong>
+                                            {prescription.medication?.name ||
+                                                "Unknown medication"}
+                                        </strong>{" "}
+                                        ({prescription.medication?.form}) -{" "}
+                                        {prescription.dosage},{" "}
+                                        {prescription.frequency}
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                 </section>
 
                 <section className="record-section">
