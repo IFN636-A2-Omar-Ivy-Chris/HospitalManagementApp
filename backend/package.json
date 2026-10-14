@@ -6,7 +6,8 @@
         "start": "node server.js",
         "dev": "nodemon server.js",
         "prod": "node server.js",
-        "test": "mocha --exit"
+        "test": "mocha --exit",
+        "seed:news": "node seed/newsSeed.js"
     },
     "keywords": [],
     "author": "",
