@@ -117,7 +117,10 @@ body {
 }
 
 .home-link {
-    padding: 12px 24px;
+    flex: 1;
+    text-align: center;
+    padding: 20px 24px;
+    font-size: 18px;
     background-color: white;
     border: 1px solid #ddd;
     border-radius: 8px;
@@ -138,13 +141,23 @@ body {
 
 /* One doctor per row: name, specialty, contact number */
 .oncall-item {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 15px;
     background-color: white;
     padding: 10px 15px;
     border: 1px solid #ddd;
     border-radius: 8px;
+}
+
+.oncall-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+    padding: 0 16px 6px;
+    color: #777;
+    font-size: 14px;
+    font-weight: bold;
 }
 
 .news-list {
@@ -155,14 +168,25 @@ body {
 
 .news-item {
     background-color: white;
-    padding: 10px 15px;
+    padding: 20px;
     border: 1px solid #ddd;
     border-radius: 8px;
 }
 
-/* Keep long titles on one line and end them with "..." */
+.news-item > p {
+    margin: 8px 0 0;
+    color:#333
+}
+
+.new-header{
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 15px;
+}
 .news-title {
     margin: 0;
+    min-width: 0;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -172,16 +196,23 @@ body {
     margin: 4px 0;
     color: #777;
     font-size: 14px;
+    flex-shrink: 0;
+    white-space: nowrap;
 }
 
 .note-form {
     display: flex;
+    flex-wrap:wrap;
+    justify-content: flex-end;
     gap: 10px;
     margin-bottom: 15px;
 }
 
 .note-form textarea {
-    flex: 1;
+    flex: 1 1 100%;
+    box-sizing: border-box;
+    min-height: 100px;
+    resize: vertical;
     padding: 10px;
     font-family: inherit;
 }

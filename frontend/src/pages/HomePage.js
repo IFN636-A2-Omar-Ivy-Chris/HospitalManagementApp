@@ -72,6 +72,11 @@ function HomePage() {
         }
     };
 
+    const cancelAddNote = () => {
+        setNewNote("");
+        setNoteError("");
+    };
+
     // Open the edit box for one note
     const startEditing = (note) => {
         setEditingNoteId(note._id);
@@ -184,6 +189,14 @@ function HomePage() {
                     {!loading && !error && onCallDoctors.length === 0 && (
                         <p className="empty-message">No doctors are currently on call</p>
                     )}
+                    
+                    {onCallDoctors.length > 0 && (
+                        <div className="oncall-header">
+                            <span>Name</span>
+                            <span>Specialty</span>
+                            <span>Contact Number</span>
+                        </div>
+                    )}
 
                     <div className="oncall-list">
                         {onCallDoctors.map((doctor) => (
@@ -212,13 +225,14 @@ function HomePage() {
                     <div className="news-list">
                         {news.map((item) => (
                             <div className="news-item" key={item._id}>
-                                {/* title is kept on one line (see .news-title in App.css) */}
+                                <div className="new-header">
                                 <h3 className="news-title" title={item.title}>
                                     {item.title}
                                 </h3>
                                 <p className="news-date">
                                     {new Date(item.publishedAt).toLocaleDateString()}
                                 </p>
+                                </div>
                                 <p>{item.body}</p>
                             </div>
                         ))}
@@ -239,7 +253,9 @@ function HomePage() {
                             onChange={(event) => setNewNote(event.target.value)}
                             placeholder="Write a note..."
                         />
+                        <button onClick={cancelAddNote}>Cancel</button>
                         <button onClick={handleAddNote}>Confirm</button>
+
                     </div>
 
                     {/* List of my notes */}
