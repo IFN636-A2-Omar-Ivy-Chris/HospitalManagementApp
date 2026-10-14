@@ -66,11 +66,12 @@ MONGO_URI=<MongoDB Atlas connection string>
 JWT_SECRET=<JWT secret>
 ```
 
-Add sample hospital news for the home page (run once):
+Add sample data for the home page (run once):
 
 ```bash
 cd backend
 npm run seed:news
+npm run seed:oncall
 cd ..
 ```
 
