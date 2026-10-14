@@ -99,3 +99,106 @@
   }
 }
 
+/* Search box and advanced filter button */
+.patients-search-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Advanced filter toggle button */
+.advanced-filter-button {
+  padding: 10px 16px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.advanced-filter-button:hover {
+  background-color: #f2f2f2;
+}
+
+/* Advanced filter panel */
+.advanced-filter-panel {
+  padding: 20px;
+  margin-bottom: 20px;
+  background-color: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+/* Panel heading and reset button */
+.advanced-filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.advanced-filter-header h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.reset-filter-button {
+  padding: 8px 12px;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.reset-filter-button:hover {
+  background-color: #eee;
+}
+
+/* Filter field layout */
+.advanced-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+/* Individual filter field */
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filter-field label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.filter-field input,
+.filter-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #fff;
+}
+
+.filter-field input:focus,
+.filter-field select:focus {
+  outline: none;
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.15);
+}
+
+/* Mobile layout */
+@media (max-width: 600px) {
+  .patients-search-container {
+    flex-wrap: wrap;
+  }
+
+  .advanced-filter-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
