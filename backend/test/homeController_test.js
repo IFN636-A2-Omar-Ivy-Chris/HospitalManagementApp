@@ -3,6 +3,7 @@ const sinon = require('sinon');
 const HomePageFacade = require('../facades/HomePageFacade');
 const Note = require('../models/Note');
 const NewsRepository = require('../repositories/NewsRepository');
+const OnCallRepository = require('../repositories/OnCallRepository');
 const { getHomePage } = require('../controllers/homeController');
 const { expect } = chai;
 
@@ -12,6 +13,7 @@ describe('GetHomePage Function Test', async () => {
   beforeEach(() => {
     sinon.stub(Note, 'find').resolves([]);
     sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
+    sinon.stub(OnCallRepository.prototype, 'findOnCallDoctors').resolves([]);
   });
 
   afterEach(() => {

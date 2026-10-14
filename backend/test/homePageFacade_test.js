@@ -3,6 +3,7 @@ const sinon = require('sinon');
 const HomePageFacade = require('../facades/HomePageFacade');
 const Note = require('../models/Note');
 const NewsRepository = require('../repositories/NewsRepository');
+const OnCallRepository = require('../repositories/OnCallRepository');
 
 describe('HomePageFacade - navigation links by role', () => {
   const facade = new HomePageFacade();
@@ -11,6 +12,7 @@ describe('HomePageFacade - navigation links by role', () => {
   beforeEach(() => {
     sinon.stub(Note, 'find').resolves([]);
     sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
+    sinon.stub(OnCallRepository.prototype, 'findOnCallDoctors').resolves([]);
   });
 
   afterEach(() => {
@@ -68,9 +70,10 @@ describe('HomePageFacade - navigation links by role', () => {
 describe('HomePageFacade - personal notes', () => {
   const facade = new HomePageFacade();
 
-  // Notes tests do not need real news
+  // Notes tests do not need real news or on-call doctors
   beforeEach(() => {
     sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
+    sinon.stub(OnCallRepository.prototype, 'findOnCallDoctors').resolves([]);
   });
 
   afterEach(() => {
@@ -98,9 +101,10 @@ describe('HomePageFacade - personal notes', () => {
 describe('HomePageFacade - news', () => {
   const facade = new HomePageFacade();
 
-  // News tests do not need real notes
+  // News tests do not need real notes or on-call doctors
   beforeEach(() => {
     sinon.stub(Note, 'find').resolves([]);
+    sinon.stub(OnCallRepository.prototype, 'findOnCallDoctors').resolves([]);
   });
 
   afterEach(() => {
