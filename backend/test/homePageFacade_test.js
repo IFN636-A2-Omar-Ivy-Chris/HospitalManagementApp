@@ -141,3 +141,47 @@ describe('HomePageFacade - news', () => {
     expect(data.news).to.deep.equal([]);
   });
 });
+
+describe('HomePageFacade - on-call doctors', () => {
+  const facade = new HomePageFacade();
+
+  // On-call tests do not need real notes or news
+  beforeEach(() => {
+    sinon.stub(Note, 'find').resolves([]);
+    sinon.stub(NewsRepository.prototype, 'findAll').resolves([]);
+  });
+
+  afterEach(() => {
+    sinon.restore();
+  });
+
+  it('returns the on-call doctors from the on-call subsystem', async () => {
+    const doctors = [{ _id: 'doc1', name: 'Dr. Erin Patel', specialty: 'Cardiology', contactNumber: '0400 333 444' }];
+    sinon.stub(OnCallRepository.prototype, 'findOnCallDoctors').resolves(doctors);
+
+    const data = await facade.getHomePageData('nurse', 'user123');
+
+    expect(data.onCall).to.deep.equal(doctors);
+  });
+
+  it('every role sees the same on-call doctors', async () => {
+    const doctors = [{ _id: 'doc1', name: 'Dr. Erin Patel', specialty: 'Cardiology', contactNumber: '0400 333 444' }];
+    sinon.stub(OnCallRepository.prototype, 'findOnCallDoctors').resolves(doctors);
+
+    const doctorData = await facade.getHomePageData('doctor', 'user1');
+    const nurseData = await facade.getHomePageData('nurse', 'user2');
+    const pharmacistData = await facade.getHomePageData('pharmacist', 'user3');
+
+    expect(doctorData.onCall).to.deep.equal(doctors);
+    expect(nurseData.onCall).to.deep.equal(doctors);
+    expect(pharmacistData.onCall).to.deep.equal(doctors);
+  });
+
+  it('returns an empty list when no doctors are on call', async () => {
+    sinon.stub(OnCallRepository.prototype, 'findOnCallDoctors').resolves([]);
+
+    const data = await facade.getHomePageData('doctor', 'user123');
+
+    expect(data.onCall).to.deep.equal([]);
+  });
+});
