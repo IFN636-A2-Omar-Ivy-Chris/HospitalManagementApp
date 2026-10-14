@@ -1,12 +1,15 @@
 const chai = require("chai");
 const sinon = require("sinon");
 const MedicationRepository = require("../repositories/MedicationRepository");
+const PrescriptionRepository = require("../repositories/PrescriptionRepository");
+
 const {
   getMedications,
   createMedication,
   updateMedication, 
   deleteMedication
 } = require("../controllers/medicationController");
+
 const { expect } = chai;
 
 describe("PHA-01 getMedications", () => {
@@ -292,10 +295,37 @@ describe("PHA-04 deleteMedication", () => {
     status: sinon.stub().returnsThis(),
     json: sinon.spy(),
   });
+  beforeEach(() => {
+    // By default the medication is not prescribed to anyone
+    sinon
+      .stub(PrescriptionRepository.prototype, "isMedicationPrescribed")
+      .resolves(false);
+  });
+
 
   afterEach(() => {
     sinon.restore();
   });
+
+  it("should return 409 if the medication is prescribed to a patient", async () => {
+    PrescriptionRepository.prototype.isMedicationPrescribed.resolves(true);
+    const deleteStub = sinon.stub(MedicationRepository.prototype, "deleteById");
+
+    const req = { params: { id: "med123" } };
+    const res = mockResponse();
+
+    await deleteMedication(req, res);
+
+    expect(res.status.calledWith(409)).to.be.true;
+    expect(
+      res.json.calledWithMatch({
+        message:
+          "This medication is prescribed to a patient and cannot be deleted",
+      }),
+    ).to.be.true;
+    expect(deleteStub.notCalled).to.be.true;
+  });
+
 
   it("should return 200 and the deleted medication", async () => {
     const deleted = {
