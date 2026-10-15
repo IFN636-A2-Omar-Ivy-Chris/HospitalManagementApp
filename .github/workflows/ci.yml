@@ -48,7 +48,10 @@ jobs:
     name: Deploy to EC2
     needs: test
     if: github.event_name == 'push'
-    runs-on: self-hosted
+    strategy:
+      matrix:
+        runner: [ec2-1, ec2-2]
+    runs-on: [self-hosted, "${{ matrix.runner }}"]
 
     steps:
       - name: Checkout Code
