@@ -5,12 +5,23 @@ class BaseRepository {
         this.#model = model;
     }
 
-    findAll(sort = {}) {
-        return this.#model.find().sort(sort);
+    find(filter = {}, sort = this.getDefaultSort()) {
+        const query = this.#model.find(filter).sort(sort);
+        const populate = this.getPopulate();
+
+        return populate ? query.populate(populate) : query;
     }
 
-    find(filter = {}, sort = {}) {
-        return this.#model.find(filter).sort(sort);
+    findAll(sort) {
+        return this.find({}, sort);
+    }
+
+    getDefaultSort() {
+        return {};
+    }
+
+    getPopulate() {
+        return null;
     }
 
     findById(id) {
