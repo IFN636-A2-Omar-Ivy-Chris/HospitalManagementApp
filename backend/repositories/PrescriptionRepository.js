@@ -6,19 +6,26 @@ class PrescriptionRepository extends BaseRepository {
         super(Prescription);
     }
 
+    // Hook override: prescriptions are listed oldest first
+    getDefaultSort() {
+        return { createdAt: 1 };
+    }
+
+    // Hook override: fill in the medication's details from the catalogue
+    getPopulate() {
+        return { path: "medication", select: "name dosage form" };
+    }
+
     findByPatient(patientId) {
-        return this.find({ patient: patientId }, { createdAt: 1 }).populate(
-            "medication",
-            "name dosage form",
-        );
+        return this.find({ patient: patientId });
+    }
+
+    findByIdWithMedication(id) {
+        return this.findById(id).populate(this.getPopulate());
     }
 
     isMedicationPrescribed(medicationId) {
         return this.exists({ medication: medicationId });
-    }
-
-    findByIdWithMedication(id) {
-        return this.findById(id).populate("medication", "name dosage form");
     }
 }
 

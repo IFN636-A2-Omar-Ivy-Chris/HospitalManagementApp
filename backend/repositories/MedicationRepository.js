@@ -1,14 +1,14 @@
-const BaseRepository = require("./BaseRepository")
-const Medication = require("../models/Medication")
+const BaseRepository = require("./BaseRepository");
+const Medication = require("../models/Medication");
 
 class MedicationRepository extends BaseRepository {
     constructor() {
-        super(Medication)
+        super(Medication);
     }
 
-    findAll() {
-        return super.findAll({name: 1})
+    getDefaultSort() {
+        return { name: 1 };
     }
 }
 
-module.exports = MedicationRepository
+module.exports = MedicationRepository;
