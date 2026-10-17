@@ -1,5 +1,6 @@
 const Patient = require("../models/Patient");
 const Ward = require("../models/Ward");
+const PatientQueryBuilder = require('../builders/PatientQueryBuilder');
 
 const getPatientsByWard = async (req, res) => {
     try {
@@ -196,22 +197,74 @@ const transferPatient = async (req, res) => {
         });
     }
 };
+
 const getAllPatients = async (req, res) => {
+
+  // Build the patient query from request parameters
+  let query;
+
   try {
-    const patients = await Patient.find({})
-      .select('name dateOfBirth gender wardId')
+    const {
+      search,
+      name,
+      id,
+      minAge,
+      maxAge,
+      ward,
+      gender,
+      medication
+    } = req.query;
+
+    // Ensure each supplied parameter is a single value
+    const parameters = {
+      search, name, id, minAge, maxAge,
+      ward, gender, medication
+    };
+
+    for (const [field, value] of Object.entries(parameters)) {
+      if (value !== undefined && typeof value !== 'string') {
+        return res.status(400).json({
+          message: `${field} must be a single value`
+        });
+      }
+    }
+
+    // Use the Builder pattern to construct the MongoDB query
+    query = new PatientQueryBuilder()
+      .setSearch(search)
+      .setName(name)
+      .setId(id)
+      .setMinAge(minAge)
+      .setMaxAge(maxAge)
+      .setWard(ward)
+      .setGender(gender)
+      .setMedication(medication)
+      .build();
+
+  } catch (error) {
+    // Invalid search or filter criteria
+    return res.status(400).json({
+      message: error.message
+    });
+  }
+
+  // Execute the constructed MongoDB query
+  try {
+    const patients = await Patient.find(query)
+      .select('name dateOfBirth gender ward')
       .populate('ward', 'name');
 
-    res.status(200).json(patients);
+    return res.status(200).json(patients);
 
   } catch (error) {
     console.error('Error retrieving patients:', error);
 
-    res.status(500).json({
+    return res.status(500).json({
       message: 'Unable to retrieve patients'
     });
   }
 };
+
 
 module.exports = {
     getPatientsByWard,
