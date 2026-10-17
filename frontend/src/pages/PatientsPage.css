@@ -202,3 +202,30 @@
   }
 }
 
+/* Advanced filter action buttons */
+.advanced-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* Apply filters button */
+.apply-filter-button {
+  padding: 10px 20px;
+  background-color: #0066cc;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.apply-filter-button:hover {
+  background-color: #0052a3;
+}
+
+.apply-filter-button:focus-visible {
+  outline: 2px solid #003d80;
+  outline-offset: 2px;
+}
+

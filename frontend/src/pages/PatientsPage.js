@@ -5,49 +5,144 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import './PatientsPage.css';
 
+// Default advanced filter values
+const initialFilters = {
+  name: '',
+  id: '',
+  minAge: '',
+  maxAge: '',
+  ward: '',
+  gender: '',
+  medication: ''
+};
+
 function PatientsPage() {
   const [patients, setPatients] = useState([]);
+  const [wards, setWards] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [wardError, setWardError] = useState('');
+
+  // Basic search
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
-  const initialFilters = {
-    name: '',
-    id: '',
-    minAge: '',
-    maxAge: '',
-    ward: '',
-    gender: '',
-    medication: ''
-  };
+  // Advanced filter form
+  const [showAdvancedFilters, setShowAdvancedFilters] =
+    useState(false);
 
-const [filters, setFilters] = useState(initialFilters);
+  const [filters, setFilters] = useState({ ...initialFilters });
 
+  // Filters currently applied to the API query
+  const [appliedFilters, setAppliedFilters] =
+    useState({ ...initialFilters });
+
+  // Retrieve wards for the filter dropdown
   useEffect(() => {
+    const getWards = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await axios.get('/api/wards', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        setWards(response.data);
+      } catch (error) {
+        setWardError('Unable to load ward options');
+      }
+    };
+
+    getWards();
+  }, []);
+
+  // Retrieve patients using search and filter criteria
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setLoading(true);
+    setError('');
+
     const getPatients = async () => {
       try {
         const token = localStorage.getItem('token');
 
-        const response = await axios.get(
-          '/api/patients',
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
+        // Combine basic search with applied advanced filters
+        const criteria = {
+          search: searchTerm.trim(),
+          ...appliedFilters
+        };
+
+        // Remove empty criteria from the request
+        const params = {};
+
+        for (const [key, value] of Object.entries(criteria)) {
+          if (value !== '') {
+            params[key] = value;
           }
-        );
+        }
+
+        const response = await axios.get('/api/patients', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          params: params, // key change from previous get patients, params are for query
+          signal: controller.signal
+        });
 
         setPatients(response.data);
+
       } catch (error) {
-        setError('Unable to load patients');
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setError(
+          error.response?.data?.message ||
+          'Unable to load patients'
+        );
+
+        setPatients([]);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
-    getPatients();
-  }, []);
+    // Delay request to avoid searching on every keystroke
+    const timeoutId = setTimeout(getPatients, 350);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+
+  }, [searchTerm, appliedFilters]);
+
+  // Update an individual advanced filter
+  const updateFilter = (field, value) => {
+    setFilters((previousFilters) => ({
+      ...previousFilters,
+      [field]: value
+    }));
+  };
+
+  // Apply the advanced filter form
+  const applyFilters = (event) => {
+    event.preventDefault();
+
+    setAppliedFilters({ ...filters });
+  };
+
+  // Reset all search and filter criteria
+  const resetAllFilters = () => {
+    setSearchTerm('');
+    setFilters({ ...initialFilters });
+    setAppliedFilters({ ...initialFilters });
+  };
 
   // Format date of birth as DD/MM/YYYY
   const formatDate = (dateString) => {
@@ -62,44 +157,20 @@ const [filters, setFilters] = useState(initialFilters);
     });
   };
 
-  // Update an individual filter field
-  const updateFilter = (field, value) => {
-    setFilters((previousFilters) => ({
-      ...previousFilters,
-      [field]: value
-    }));
-  };
-
-  // Reset all search and filter criteria
-  const resetAllFilters = () => {
-    setFilters({
-      name: '',
-      id: '',
-      minAge: '',
-      maxAge: '',
-      ward: '',
-      gender: '',
-      medication: ''
-    });
-
-    setSearchTerm('');
-  };
-
-  // Get available ward names from loaded patient records
-  const wardOptions = [
-    ...new Set(
-      patients
-        .map((patient) => patient.ward?.name)
-        .filter(Boolean)
-    )
-  ].sort();
-
+  // Check whether any search criteria are active
+  const hasActiveCriteria =
+    searchTerm.trim() !== '' ||
+    Object.values(appliedFilters).some(
+      (value) => value !== ''
+    );
 
   return (
     <>
       <Navbar />
 
       <main className="page-container">
+
+        {/* Page heading and quick search */}
         <div className="patients-page-header">
           <h1>Patients</h1>
 
@@ -112,10 +183,13 @@ const [filters, setFilters] = useState(initialFilters);
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
+
             <button
               type="button"
               className="advanced-filter-button"
-              onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+              onClick={() =>
+                setShowAdvancedFilters(!showAdvancedFilters)
+              }
               aria-expanded={showAdvancedFilters}
               aria-controls="advanced-patient-filters"
             >
@@ -123,13 +197,13 @@ const [filters, setFilters] = useState(initialFilters);
             </button>
           </div>
         </div>
-        
+
+        {/* Advanced filter form */}
         {showAdvancedFilters && (
           <form
             id="advanced-patient-filters"
             className="advanced-filter-panel"
-            aria-label="Advanced patient filters"
-            onSubmit={(e) => e.preventDefault()}
+            onSubmit={applyFilters}
           >
             <div className="advanced-filter-header">
               <h2>Advanced Filters</h2>
@@ -147,31 +221,41 @@ const [filters, setFilters] = useState(initialFilters);
 
               {/* Patient Name */}
               <div className="filter-field">
-                <label htmlFor="filter-name">Patient Name</label>
+                <label htmlFor="filter-name">
+                  Patient Name
+                </label>
                 <input
                   id="filter-name"
                   type="text"
                   placeholder="Enter patient name"
                   value={filters.name}
-                  onChange={(e) => updateFilter('name', e.target.value)}
+                  onChange={(e) =>
+                    updateFilter('name', e.target.value)
+                  }
                 />
               </div>
 
               {/* Patient ID */}
               <div className="filter-field">
-                <label htmlFor="filter-id">Patient ID</label>
+                <label htmlFor="filter-id">
+                  Patient ID
+                </label>
                 <input
                   id="filter-id"
                   type="text"
                   placeholder="Enter patient ID"
                   value={filters.id}
-                  onChange={(e) => updateFilter('id', e.target.value)}
+                  onChange={(e) =>
+                    updateFilter('id', e.target.value)
+                  }
                 />
               </div>
 
               {/* Minimum Age */}
               <div className="filter-field">
-                <label htmlFor="filter-min-age">Minimum Age</label>
+                <label htmlFor="filter-min-age">
+                  Minimum Age
+                </label>
                 <input
                   id="filter-min-age"
                   type="number"
@@ -179,13 +263,17 @@ const [filters, setFilters] = useState(initialFilters);
                   step="1"
                   placeholder="e.g. 18"
                   value={filters.minAge}
-                  onChange={(e) => updateFilter('minAge', e.target.value)}
+                  onChange={(e) =>
+                    updateFilter('minAge', e.target.value)
+                  }
                 />
               </div>
 
               {/* Maximum Age */}
               <div className="filter-field">
-                <label htmlFor="filter-max-age">Maximum Age</label>
+                <label htmlFor="filter-max-age">
+                  Maximum Age
+                </label>
                 <input
                   id="filter-max-age"
                   type="number"
@@ -193,35 +281,54 @@ const [filters, setFilters] = useState(initialFilters);
                   step="1"
                   placeholder="e.g. 65"
                   value={filters.maxAge}
-                  onChange={(e) => updateFilter('maxAge', e.target.value)}
+                  onChange={(e) =>
+                    updateFilter('maxAge', e.target.value)
+                  }
                 />
               </div>
 
               {/* Ward */}
               <div className="filter-field">
-                <label htmlFor="filter-ward">Ward</label>
+                <label htmlFor="filter-ward">
+                  Ward
+                </label>
                 <select
                   id="filter-ward"
                   value={filters.ward}
-                  onChange={(e) => updateFilter('ward', e.target.value)}
+                  onChange={(e) =>
+                    updateFilter('ward', e.target.value)
+                  }
                 >
                   <option value="">All wards</option>
 
-                  {wardOptions.map((wardName) => (
-                    <option key={wardName} value={wardName}>
-                      {wardName}
+                  {wards.map((ward) => (
+                    <option
+                      key={ward._id}
+                      value={ward._id}
+                    >
+                      {ward.name}
                     </option>
                   ))}
                 </select>
+
+                {wardError && (
+                  <p className="error-message" role="alert">
+                    {wardError}
+                  </p>
+                )}
               </div>
 
               {/* Gender */}
               <div className="filter-field">
-                <label htmlFor="filter-gender">Gender</label>
+                <label htmlFor="filter-gender">
+                  Gender
+                </label>
                 <select
                   id="filter-gender"
                   value={filters.gender}
-                  onChange={(e) => updateFilter('gender', e.target.value)}
+                  onChange={(e) =>
+                    updateFilter('gender', e.target.value)
+                  }
                 >
                   <option value="">All genders</option>
                   <option value="Male">Male</option>
@@ -232,35 +339,56 @@ const [filters, setFilters] = useState(initialFilters);
 
               {/* Medication */}
               <div className="filter-field">
-                <label htmlFor="filter-medication">Medication</label>
+                <label htmlFor="filter-medication">
+                  Medication
+                </label>
                 <input
                   id="filter-medication"
                   type="text"
                   placeholder="Enter medication name"
                   value={filters.medication}
-                  onChange={(e) => updateFilter('medication', e.target.value)}
+                  onChange={(e) =>
+                    updateFilter('medication', e.target.value)
+                  }
                 />
               </div>
-
             </div>
+
+            {/* Apply selected filters */}
+            <div className="advanced-filter-actions">
+              <button
+                type="submit"
+                className="apply-filter-button"
+              >
+                Apply Filters
+              </button>
+            </div>
+
           </form>
         )}
 
-
+        {/* Loading state */}
         {loading && (
           <p role="status">Loading patients...</p>
         )}
 
+        {/* Error state */}
         {!loading && error && (
           <p className="error-message" role="alert">
             {error}
           </p>
         )}
 
+        {/* Empty results state */}
         {!loading && !error && patients.length === 0 && (
-          <p>No patients found in the hospital.</p>
+          <p>
+            {hasActiveCriteria
+              ? 'No patients match your search criteria.'
+              : 'No patients found in the hospital.'}
+          </p>
         )}
 
+        {/* Patient table */}
         {!loading && !error && patients.length > 0 && (
           <div className="patients-table-container">
             <table className="patients-table">
@@ -300,6 +428,7 @@ const [filters, setFilters] = useState(initialFilters);
             </table>
           </div>
         )}
+
       </main>
     </>
   );
