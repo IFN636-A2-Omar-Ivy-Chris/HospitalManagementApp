@@ -5,7 +5,7 @@ const Note = require('../models/Note');
 const NewsRepository = require('../repositories/NewsRepository');
 const OnCallRepository = require('../repositories/OnCallRepository');
 
-describe('HomePageFacade - navigation links by role', () => {
+describe('HOME-04 getNavLinks', () => {
   const facade = new HomePageFacade();
 
   // The Facade reads notes from the database, so replace it with a fake one
@@ -61,13 +61,15 @@ describe('HomePageFacade - navigation links by role', () => {
     expect(data).to.have.all.keys('links', 'news', 'onCall', 'notes');
   });
 
-  it('hides its internal methods (Encapsulation)', () => {
+  it('keeps getNavLinks, getNews, getOnCall and getNotes private (Encapsulation)', () => {
     expect(facade.getNavLinks).to.equal(undefined);
     expect(facade.getNews).to.equal(undefined);
+    expect(facade.getOnCall).to.equal(undefined);
+    expect(facade.getNotes).to.equal(undefined);
   });
 });
 
-describe('HomePageFacade - personal notes', () => {
+describe('HOME-03 getNotes', () => {
   const facade = new HomePageFacade();
 
   // Notes tests do not need real news or on-call doctors
@@ -98,7 +100,7 @@ describe('HomePageFacade - personal notes', () => {
   });
 });
 
-describe('HomePageFacade - news', () => {
+describe('HOME-01 getNews', () => {
   const facade = new HomePageFacade();
 
   // News tests do not need real notes or on-call doctors
@@ -142,7 +144,7 @@ describe('HomePageFacade - news', () => {
   });
 });
 
-describe('HomePageFacade - on-call doctors', () => {
+describe('HOME-02 getOnCall', () => {
   const facade = new HomePageFacade();
 
   // On-call tests do not need real notes or news

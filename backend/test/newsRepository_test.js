@@ -4,7 +4,7 @@ const News = require('../models/News');
 const NewsRepository = require('../repositories/NewsRepository');
 const BaseRepository = require('../repositories/BaseRepository');
 
-describe('NewsRepository Test', () => {
+describe('HOME-01 findAll', () => {
 
   afterEach(() => {
     sinon.restore();
