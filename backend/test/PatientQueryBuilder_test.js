@@ -114,4 +114,102 @@ describe('PatientQueryBuilder', () => {
       .build();
     expect(query).to.deep.equal({});
   });
+
+
 });
+
+describe('Sorting', function () {
+
+  it('should default to sorting by name ascending', function () {
+    const builder = new PatientQueryBuilder();
+
+    expect(builder.buildSort()).to.deep.equal({
+      name: 1
+    });
+  });
+
+  it('should sort by name descending', function () {
+    const builder = new PatientQueryBuilder()
+      .setSortBy('name')
+      .setSortOrder('desc');
+
+    expect(builder.buildSort()).to.deep.equal({
+      name: -1
+    });
+  });
+
+  it('should sort by date of birth ascending', function () {
+    const builder = new PatientQueryBuilder()
+      .setSortBy('dateOfBirth')
+      .setSortOrder('asc');
+
+    expect(builder.buildSort()).to.deep.equal({
+      dateOfBirth: 1
+    });
+  });
+
+  it('should sort by date of birth descending', function () {
+    const builder = new PatientQueryBuilder()
+      .setSortBy('dateOfBirth')
+      .setSortOrder('desc');
+
+    expect(builder.buildSort()).to.deep.equal({
+      dateOfBirth: -1
+    });
+  });
+
+  it('should sort by gender ascending', function () {
+    const builder = new PatientQueryBuilder()
+      .setSortBy('gender');
+
+    expect(builder.buildSort()).to.deep.equal({
+      gender: 1
+    });
+  });
+
+  it('should create ward sorting instructions', function () {
+    const builder = new PatientQueryBuilder()
+      .setSortBy('ward')
+      .setSortOrder('desc');
+
+    expect(builder.buildSort()).to.deep.equal({
+      ward: -1
+    });
+  });
+
+  it('should reject an invalid sorting field', function () {
+    const builder = new PatientQueryBuilder();
+
+    expect(() => {
+      builder.setSortBy('contactNumber');
+    }).to.throw('Invalid sorting field');
+  });
+
+  it('should reject an invalid sorting direction', function () {
+    const builder = new PatientQueryBuilder();
+
+    expect(() => {
+      builder.setSortOrder('up');
+    }).to.throw('Invalid sorting order');
+  });
+
+  it('should preserve filters when sorting is added', function () {
+    const builder = new PatientQueryBuilder()
+      .setName('Smith')
+      .setGender('Female');
+
+    const filterBeforeSorting = builder.build();
+
+    builder
+      .setSortBy('dateOfBirth')
+      .setSortOrder('desc');
+
+    expect(builder.build()).to.deep.equal(filterBeforeSorting);
+
+    expect(builder.buildSort()).to.deep.equal({
+      dateOfBirth: -1
+    });
+  });
+
+});
+

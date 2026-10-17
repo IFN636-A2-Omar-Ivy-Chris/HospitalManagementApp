@@ -200,69 +200,144 @@ const transferPatient = async (req, res) => {
 
 const getAllPatients = async (req, res) => {
 
-  // Build the patient query from request parameters
-  let query;
+    // Build the patient query from request parameters
+    let query;
 
-  try {
-    const {
-      search,
-      name,
-      id,
-      minAge,
-      maxAge,
-      ward,
-      gender,
-      medication
-    } = req.query;
+    let sort;
 
-    // Ensure each supplied parameter is a single value
-    const parameters = {
-      search, name, id, minAge, maxAge,
-      ward, gender, medication
-    };
+    try {
+            const {
+                search,
+                name,
+                id,
+                minAge,
+                maxAge,
+                ward,
+                gender,
+                medication,
+                sortBy,
+                sortOrder
+            } = req.query;
 
-    for (const [field, value] of Object.entries(parameters)) {
-      if (value !== undefined && typeof value !== 'string') {
+            // Ensure each supplied parameter is a single value
+            const parameters = {
+            search,
+            name,
+            id,
+            minAge,
+            maxAge,
+            ward,
+            gender,
+            medication,
+            sortBy,
+            sortOrder
+            };
+
+        for (const [field, value] of Object.entries(parameters)) {
+        if (value !== undefined && typeof value !== 'string') {
+            return res.status(400).json({
+            message: `${field} must be a single value`
+            });
+        }
+        }
+
+        // Use the Builder pattern to construct the MongoDB query
+        const builder = new PatientQueryBuilder()
+            .setSearch(search)
+            .setName(name)
+            .setId(id)
+            .setMinAge(minAge)
+            .setMaxAge(maxAge)
+            .setWard(ward)
+            .setGender(gender)
+            .setMedication(medication)
+            .setSortBy(sortBy)
+            .setSortOrder(sortOrder);
+        
+            query = builder.build();
+            sort = builder.buildSort();
+
+    } catch (error) {
+        // Invalid search or filter criteria
         return res.status(400).json({
-          message: `${field} must be a single value`
+        message: error.message
         });
-      }
     }
 
-    // Use the Builder pattern to construct the MongoDB query
-    query = new PatientQueryBuilder()
-      .setSearch(search)
-      .setName(name)
-      .setId(id)
-      .setMinAge(minAge)
-      .setMaxAge(maxAge)
-      .setWard(ward)
-      .setGender(gender)
-      .setMedication(medication)
-      .build();
+    // Retrieve patients using the constructed query
+    try {
+        let patients;
 
-  } catch (error) {
-    // Invalid search or filter criteria
-    return res.status(400).json({
-      message: error.message
-    });
-  }
+        if (Object.prototype.hasOwnProperty.call(sort, 'ward')) {
 
-  // Execute the constructed MongoDB query
-  try {
-    const patients = await Patient.find(query)
-      .select('name dateOfBirth gender ward')
-      .populate('ward', 'name');
+        // Ward sorting requires joining the Ward collection
+        const direction = sort.ward;
 
-    return res.status(200).json(patients);
+        patients = await Patient.aggregate([
+            // Apply search and filter criteria first
+            {
+            $match: query
+            },
 
-  } catch (error) {
-    console.error('Error retrieving patients:', error);
+            // Join patients with their wards
+            {
+            $lookup: {
+                from: 'wards',
+                localField: 'ward',
+                foreignField: '_id',
+                as: 'wardDetails'
+            }
+            },
 
-    return res.status(500).json({
-      message: 'Unable to retrieve patients'
-    });
-  }
+            // Convert the wardDetails array into an object
+            {
+            $unwind: {
+                path: '$wardDetails',
+                preserveNullAndEmptyArrays: true
+            }
+            },
+
+            // Sort alphabetically by ward name
+            {
+            $sort: {
+                'wardDetails.name': direction,
+                name: 1,
+                _id: 1
+            }
+            },
+
+            // Return the same patient fields as the existing API
+            {
+            $project: {
+                name: 1,
+                dateOfBirth: 1,
+                gender: 1,
+                ward: {
+                _id: '$wardDetails._id',
+                name: '$wardDetails.name'
+                }
+            }
+            }
+        ]);
+
+        } else {
+
+        // Normal sorting for name, DOB and gender
+        patients = await Patient.find(query)
+            .select('name dateOfBirth gender ward')
+            .populate('ward', 'name')
+            .sort(sort);
+        }
+
+        return res.status(200).json(patients);
+
+    } catch (error) {
+        console.error('Error retrieving patients:', error);
+
+        return res.status(500).json({
+        message: 'Unable to retrieve patients'
+        });
+    }
 };
 
 
