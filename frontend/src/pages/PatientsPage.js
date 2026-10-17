@@ -29,6 +29,7 @@ function PatientsPage() {
 
   // Basic search
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // this is for improving responsiveness
 
   // Advanced filter form
   const [showAdvancedFilters, setShowAdvancedFilters] =
@@ -74,8 +75,10 @@ function PatientsPage() {
 
         // Combine basic search with applied advanced filters
         const criteria = {
-          search: searchTerm.trim(),
-          ...appliedFilters
+          search: debouncedSearchTerm,
+          ...appliedFilters,
+            sortBy: sortBy,
+            sortOrder: sortOrder
         };
 
         // Remove empty criteria from the request
@@ -115,15 +118,26 @@ function PatientsPage() {
       }
     };
 
-    // Delay request to avoid searching on every keystroke
-    const timeoutId = setTimeout(getPatients, 350);
+    // Execute the API request immediately
+    getPatients();
 
     return () => {
-      clearTimeout(timeoutId);
       controller.abort();
     };
 
-  }, [searchTerm, appliedFilters]);
+  }, [debouncedSearchTerm, appliedFilters, sortBy, sortOrder]);
+
+  // Delay Quick Search requests while the user is typing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm.trim());
+    }, 350);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, [searchTerm]);
+
 
   // Update an individual advanced filter
   const updateFilter = (field, value) => {
@@ -383,12 +397,17 @@ function PatientsPage() {
 
           </form>
         )}
-
+        {/* Dedicated space for loading and updating messages */}
+        <div className="patients-status-container" role="status" aria-live="polite">
         {/* Loading state */}
         {loading && (
-          <p role="status">Loading patients...</p>
+          <p role="status">
+            {patients.length === 0
+              ? 'Loading patients...'
+              : 'Updating patients...'}
+          </p>
         )}
-
+        </div>
         {/* Error state */}
         {!loading && error && (
           <p className="error-message" role="alert">
@@ -406,7 +425,7 @@ function PatientsPage() {
         )}
 
         {/* Patient table */}
-        {!loading && !error && patients.length > 0 && (
+        {!error && patients.length > 0 && (
           <div className="patients-table-container">
             <table className="patients-table">
               <thead>
