@@ -4,6 +4,10 @@ class PatientQueryBuilder {
 
   constructor() {
     this.criteria = {};
+
+    // Default sorting configuration
+    this.sortBy = 'name';
+    this.sortOrder = 'asc';
   }
 
   // Shared method for text-based criteria
@@ -107,6 +111,51 @@ class PatientQueryBuilder {
   setMedication(medication) {
     return this.setText('medication', medication);
   }
+
+  // Sorting
+  setSortBy(field) {
+      // Ignore omitted or empty values; retain default
+      if (field === undefined || field === null || field === '') {
+        return this;
+      }
+
+      // Only allow supported patient fields
+      const allowedFields = [
+        'name',
+        'dateOfBirth',
+        'gender',
+        'ward'
+      ];
+
+      if (!allowedFields.includes(field)) {
+        throw new Error('Invalid sorting field');
+      } 
+
+      this.sortBy = field;
+      return this;
+    }
+  
+  setSortOrder(order) {
+    // Ignore omitted or empty values; retain default
+    if (order === undefined || order === null || order === '') {
+      return this;
+    }
+
+    if (order !== 'asc' && order !== 'desc') {
+      throw new Error('Invalid sorting order');
+    }
+
+    this.sortOrder = order;
+    return this;
+  }   
+    
+    buildSort() {
+      const direction = this.sortOrder === 'asc' ? 1 : -1;
+
+      return {
+        [this.sortBy]: direction
+      };
+    }
 
   // Construct the MongoDB query filter
   build() {
