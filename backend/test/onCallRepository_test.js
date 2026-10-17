@@ -10,7 +10,7 @@ const fakeQuery = (result) => ({
   sort: sinon.stub().resolves(result)
 });
 
-describe('OnCallRepository Test', () => {
+describe('HOME-02 findOnCallDoctors', () => {
 
   afterEach(() => {
     sinon.restore();

@@ -7,7 +7,7 @@ const OnCallRepository = require('../repositories/OnCallRepository');
 const { getHomePage } = require('../controllers/homeController');
 const { expect } = chai;
 
-describe('GetHomePage Function Test', async () => {
+describe('HOME-04 getHomePage', async () => {
 
   // The Facade reads notes from the database, so replace it with a fake one
   beforeEach(() => {

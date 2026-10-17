@@ -10,7 +10,7 @@ const mockResponse = () => ({
   json: sinon.spy()
 });
 
-describe('AddNote Function Test', () => {
+describe('HOME-03 addNote', () => {
 
   afterEach(() => {
     sinon.restore();
@@ -68,7 +68,7 @@ describe('AddNote Function Test', () => {
 
 });
 
-describe('UpdateNote Function Test', () => {
+describe('HOME-03 updateNote', () => {
 
   afterEach(() => {
     sinon.restore();
@@ -141,7 +141,7 @@ describe('UpdateNote Function Test', () => {
 
 });
 
-describe('DeleteNote Function Test', () => {
+describe('HOME-03 deleteNote', () => {
 
   afterEach(() => {
     sinon.restore();
