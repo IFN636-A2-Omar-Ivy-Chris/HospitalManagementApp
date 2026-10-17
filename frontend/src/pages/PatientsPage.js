@@ -5,35 +5,144 @@ import axios from 'axios';
 import Navbar from '../components/Navbar';
 import './PatientsPage.css';
 
+// Default advanced filter values
+const initialFilters = {
+  name: '',
+  id: '',
+  minAge: '',
+  maxAge: '',
+  ward: '',
+  gender: '',
+  medication: ''
+};
+
 function PatientsPage() {
   const [patients, setPatients] = useState([]);
+  const [wards, setWards] = useState([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [wardError, setWardError] = useState('');
 
+  // Basic search
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Advanced filter form
+  const [showAdvancedFilters, setShowAdvancedFilters] =
+    useState(false);
+
+  const [filters, setFilters] = useState({ ...initialFilters });
+
+  // Filters currently applied to the API query
+  const [appliedFilters, setAppliedFilters] =
+    useState({ ...initialFilters });
+
+  // Retrieve wards for the filter dropdown
   useEffect(() => {
+    const getWards = async () => {
+      try {
+        const token = localStorage.getItem('token');
+
+        const response = await axios.get('/api/wards', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        setWards(response.data);
+      } catch (error) {
+        setWardError('Unable to load ward options');
+      }
+    };
+
+    getWards();
+  }, []);
+
+  // Retrieve patients using search and filter criteria
+  useEffect(() => {
+    const controller = new AbortController();
+
+    setLoading(true);
+    setError('');
+
     const getPatients = async () => {
       try {
         const token = localStorage.getItem('token');
 
-        const response = await axios.get(
-          '/api/patients',
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
+        // Combine basic search with applied advanced filters
+        const criteria = {
+          search: searchTerm.trim(),
+          ...appliedFilters
+        };
+
+        // Remove empty criteria from the request
+        const params = {};
+
+        for (const [key, value] of Object.entries(criteria)) {
+          if (value !== '') {
+            params[key] = value;
           }
-        );
+        }
+
+        const response = await axios.get('/api/patients', {
+          headers: {
+            Authorization: `Bearer ${token}`
+          },
+          params: params, // key change from previous get patients, params are for query
+          signal: controller.signal
+        });
 
         setPatients(response.data);
+
       } catch (error) {
-        setError('Unable to load patients');
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setError(
+          error.response?.data?.message ||
+          'Unable to load patients'
+        );
+
+        setPatients([]);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
-    getPatients();
-  }, []);
+    // Delay request to avoid searching on every keystroke
+    const timeoutId = setTimeout(getPatients, 350);
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+
+  }, [searchTerm, appliedFilters]);
+
+  // Update an individual advanced filter
+  const updateFilter = (field, value) => {
+    setFilters((previousFilters) => ({
+      ...previousFilters,
+      [field]: value
+    }));
+  };
+
+  // Apply the advanced filter form
+  const applyFilters = (event) => {
+    event.preventDefault();
+
+    setAppliedFilters({ ...filters });
+  };
+
+  // Reset all search and filter criteria
+  const resetAllFilters = () => {
+    setSearchTerm('');
+    setFilters({ ...initialFilters });
+    setAppliedFilters({ ...initialFilters });
+  };
 
   // Format date of birth as DD/MM/YYYY
   const formatDate = (dateString) => {
@@ -48,27 +157,238 @@ function PatientsPage() {
     });
   };
 
+  // Check whether any search criteria are active
+  const hasActiveCriteria =
+    searchTerm.trim() !== '' ||
+    Object.values(appliedFilters).some(
+      (value) => value !== ''
+    );
+
   return (
     <>
       <Navbar />
 
       <main className="page-container">
-        <h1>Patients</h1>
 
+        {/* Page heading and quick search */}
+        <div className="patients-page-header">
+          <h1>Patients</h1>
+
+          <div className="patients-search-container">
+            <input
+              type="search"
+              className="patients-search-input"
+              placeholder="Search by name or ID..."
+              aria-label="Search patients by name or ID"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            <button
+              type="button"
+              className="advanced-filter-button"
+              onClick={() =>
+                setShowAdvancedFilters(!showAdvancedFilters)
+              }
+              aria-expanded={showAdvancedFilters}
+              aria-controls="advanced-patient-filters"
+            >
+              Advanced Filter {showAdvancedFilters ? '▲' : '▼'}
+            </button>
+          </div>
+        </div>
+
+        {/* Advanced filter form */}
+        {showAdvancedFilters && (
+          <form
+            id="advanced-patient-filters"
+            className="advanced-filter-panel"
+            onSubmit={applyFilters}
+          >
+            <div className="advanced-filter-header">
+              <h2>Advanced Filters</h2>
+
+              <button
+                type="button"
+                className="reset-filter-button"
+                onClick={resetAllFilters}
+              >
+                Reset All
+              </button>
+            </div>
+
+            <div className="advanced-filter-grid">
+
+              {/* Patient Name */}
+              <div className="filter-field">
+                <label htmlFor="filter-name">
+                  Patient Name
+                </label>
+                <input
+                  id="filter-name"
+                  type="text"
+                  placeholder="Enter patient name"
+                  value={filters.name}
+                  onChange={(e) =>
+                    updateFilter('name', e.target.value)
+                  }
+                />
+              </div>
+
+              {/* Patient ID */}
+              <div className="filter-field">
+                <label htmlFor="filter-id">
+                  Patient ID
+                </label>
+                <input
+                  id="filter-id"
+                  type="text"
+                  placeholder="Enter patient ID"
+                  value={filters.id}
+                  onChange={(e) =>
+                    updateFilter('id', e.target.value)
+                  }
+                />
+              </div>
+
+              {/* Minimum Age */}
+              <div className="filter-field">
+                <label htmlFor="filter-min-age">
+                  Minimum Age
+                </label>
+                <input
+                  id="filter-min-age"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 18"
+                  value={filters.minAge}
+                  onChange={(e) =>
+                    updateFilter('minAge', e.target.value)
+                  }
+                />
+              </div>
+
+              {/* Maximum Age */}
+              <div className="filter-field">
+                <label htmlFor="filter-max-age">
+                  Maximum Age
+                </label>
+                <input
+                  id="filter-max-age"
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="e.g. 65"
+                  value={filters.maxAge}
+                  onChange={(e) =>
+                    updateFilter('maxAge', e.target.value)
+                  }
+                />
+              </div>
+
+              {/* Ward */}
+              <div className="filter-field">
+                <label htmlFor="filter-ward">
+                  Ward
+                </label>
+                <select
+                  id="filter-ward"
+                  value={filters.ward}
+                  onChange={(e) =>
+                    updateFilter('ward', e.target.value)
+                  }
+                >
+                  <option value="">All wards</option>
+
+                  {wards.map((ward) => (
+                    <option
+                      key={ward._id}
+                      value={ward._id}
+                    >
+                      {ward.name}
+                    </option>
+                  ))}
+                </select>
+
+                {wardError && (
+                  <p className="error-message" role="alert">
+                    {wardError}
+                  </p>
+                )}
+              </div>
+
+              {/* Gender */}
+              <div className="filter-field">
+                <label htmlFor="filter-gender">
+                  Gender
+                </label>
+                <select
+                  id="filter-gender"
+                  value={filters.gender}
+                  onChange={(e) =>
+                    updateFilter('gender', e.target.value)
+                  }
+                >
+                  <option value="">All genders</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+
+              {/* Medication */}
+              <div className="filter-field">
+                <label htmlFor="filter-medication">
+                  Medication
+                </label>
+                <input
+                  id="filter-medication"
+                  type="text"
+                  placeholder="Enter medication name"
+                  value={filters.medication}
+                  onChange={(e) =>
+                    updateFilter('medication', e.target.value)
+                  }
+                />
+              </div>
+            </div>
+
+            {/* Apply selected filters */}
+            <div className="advanced-filter-actions">
+              <button
+                type="submit"
+                className="apply-filter-button"
+              >
+                Apply Filters
+              </button>
+            </div>
+
+          </form>
+        )}
+
+        {/* Loading state */}
         {loading && (
           <p role="status">Loading patients...</p>
         )}
 
+        {/* Error state */}
         {!loading && error && (
           <p className="error-message" role="alert">
             {error}
           </p>
         )}
 
+        {/* Empty results state */}
         {!loading && !error && patients.length === 0 && (
-          <p>No patients found in the hospital.</p>
+          <p>
+            {hasActiveCriteria
+              ? 'No patients match your search criteria.'
+              : 'No patients found in the hospital.'}
+          </p>
         )}
 
+        {/* Patient table */}
         {!loading && !error && patients.length > 0 && (
           <div className="patients-table-container">
             <table className="patients-table">
@@ -108,6 +428,7 @@ function PatientsPage() {
             </table>
           </div>
         )}
+
       </main>
     </>
   );
