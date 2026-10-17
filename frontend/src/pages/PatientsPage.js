@@ -24,6 +24,9 @@ function PatientsPage() {
   const [error, setError] = useState('');
   const [wardError, setWardError] = useState('');
 
+  const [sortBy, setSortBy] = useState('name');
+  const [sortOrder, setSortOrder] = useState('asc');
+
   // Basic search
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -155,6 +158,20 @@ function PatientsPage() {
     return date.toLocaleDateString('en-AU', {
       timeZone: 'UTC'
     });
+  };
+
+  // Update the selected sorting column and direction
+  const handleSort = (column) => {
+    if (sortBy === column) {
+      // Clicking the selected column reverses the direction
+      setSortOrder((previousOrder) =>
+        previousOrder === 'asc' ? 'desc' : 'asc'
+      );
+    } else {
+      // Selecting another column defaults to ascending
+      setSortBy(column);
+      setSortOrder('asc');
+    }
   };
 
   // Check whether any search criteria are active
@@ -394,59 +411,121 @@ function PatientsPage() {
             <table className="patients-table">
               <thead>
                 <tr>
-                  <th scope="col" aria-sort="ascending">
+                  {/* Patient Name */}
+                  <th
+                    scope="col"
+                    aria-sort={
+                      sortBy === 'name'
+                        ? (sortOrder === 'asc' ? 'ascending' : 'descending')
+                        : 'none'
+                    }
+                  >
                     <button
                       type="button"
-                      className="sort-header active-sort"
+                      className={
+                        sortBy === 'name'
+                          ? 'sort-header active-sort'
+                          : 'sort-header'
+                      }
+                      onClick={() => handleSort('name')}
                     >
                       Patient Name
                       <span className="sort-indicator" aria-hidden="true">
-                        ▲
+                        {sortBy === 'name'
+                          ? (sortOrder === 'asc' ? '▲' : '▼')
+                          : '⇅'}
                       </span>
                     </button>
                   </th>
 
+                  {/* Patient ID - not sortable */}
                   <th scope="col">
                     Patient ID
                   </th>
 
-                  <th scope="col">
+                  {/* Date of Birth */}
+                  <th
+                    scope="col"
+                    aria-sort={
+                      sortBy === 'dateOfBirth'
+                        ? (sortOrder === 'asc' ? 'ascending' : 'descending')
+                        : 'none'
+                    }
+                  >
                     <button
                       type="button"
-                      className="sort-header"
+                      className={
+                        sortBy === 'dateOfBirth'
+                          ? 'sort-header active-sort'
+                          : 'sort-header'
+                      }
+                      onClick={() => handleSort('dateOfBirth')}
                     >
                       Date of Birth
                       <span className="sort-indicator" aria-hidden="true">
-                        ⇅
+                        {sortBy === 'dateOfBirth'
+                          ? (sortOrder === 'asc' ? '▲' : '▼')
+                          : '⇅'}
                       </span>
                     </button>
                   </th>
 
-                  <th scope="col">
+                  {/* Gender */}
+                  <th
+                    scope="col"
+                    aria-sort={
+                      sortBy === 'gender'
+                        ? (sortOrder === 'asc' ? 'ascending' : 'descending')
+                        : 'none'
+                    }
+                  >
                     <button
                       type="button"
-                      className="sort-header"
+                      className={
+                        sortBy === 'gender'
+                          ? 'sort-header active-sort'
+                          : 'sort-header'
+                      }
+                      onClick={() => handleSort('gender')}
                     >
                       Gender
                       <span className="sort-indicator" aria-hidden="true">
-                        ⇅
+                        {sortBy === 'gender'
+                          ? (sortOrder === 'asc' ? '▲' : '▼')
+                          : '⇅'}
                       </span>
                     </button>
                   </th>
 
-                  <th scope="col">
+                  {/* Ward */}
+                  <th
+                    scope="col"
+                    aria-sort={
+                      sortBy === 'ward'
+                        ? (sortOrder === 'asc' ? 'ascending' : 'descending')
+                        : 'none'
+                    }
+                  >
                     <button
                       type="button"
-                      className="sort-header"
+                      className={
+                        sortBy === 'ward'
+                          ? 'sort-header active-sort'
+                          : 'sort-header'
+                      }
+                      onClick={() => handleSort('ward')}
                     >
                       Ward
                       <span className="sort-indicator" aria-hidden="true">
-                        ⇅
+                        {sortBy === 'ward'
+                          ? (sortOrder === 'asc' ? '▲' : '▼')
+                          : '⇅'}
                       </span>
                     </button>
                   </th>
                 </tr>
               </thead>
+
               <tbody>
                 {patients.map((patient) => (
                   <tr key={patient._id}>
