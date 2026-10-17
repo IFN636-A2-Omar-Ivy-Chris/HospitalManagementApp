@@ -394,14 +394,59 @@ function PatientsPage() {
             <table className="patients-table">
               <thead>
                 <tr>
-                  <th scope="col">Patient Name</th>
-                  <th scope="col">Patient ID</th>
-                  <th scope="col">Date of Birth</th>
-                  <th scope="col">Gender</th>
-                  <th scope="col">Ward</th>
+                  <th scope="col" aria-sort="ascending">
+                    <button
+                      type="button"
+                      className="sort-header active-sort"
+                    >
+                      Patient Name
+                      <span className="sort-indicator" aria-hidden="true">
+                        ▲
+                      </span>
+                    </button>
+                  </th>
+
+                  <th scope="col">
+                    Patient ID
+                  </th>
+
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="sort-header"
+                    >
+                      Date of Birth
+                      <span className="sort-indicator" aria-hidden="true">
+                        ⇅
+                      </span>
+                    </button>
+                  </th>
+
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="sort-header"
+                    >
+                      Gender
+                      <span className="sort-indicator" aria-hidden="true">
+                        ⇅
+                      </span>
+                    </button>
+                  </th>
+
+                  <th scope="col">
+                    <button
+                      type="button"
+                      className="sort-header"
+                    >
+                      Ward
+                      <span className="sort-indicator" aria-hidden="true">
+                        ⇅
+                      </span>
+                    </button>
+                  </th>
                 </tr>
               </thead>
-
               <tbody>
                 {patients.map((patient) => (
                   <tr key={patient._id}>
