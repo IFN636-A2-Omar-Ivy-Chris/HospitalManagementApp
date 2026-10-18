@@ -2,6 +2,12 @@ const Patient = require("../models/Patient");
 const Ward = require("../models/Ward");
 const Medication = require('../models/Medication');
 const Prescription = require('../models/Prescription');
+const PatientRepository = require('../repositories/PatientRepository');
+const MedicationRepository = require('../repositories/MedicationRepository');
+const PrescriptionRepository = require('../repositories/PrescriptionRepository');
+const patientRepository = new PatientRepository();
+const medicationRepository = new MedicationRepository();
+const prescriptionRepository = new PrescriptionRepository();
 const PatientQueryBuilder = require('../builders/PatientQueryBuilder');
 
 const getPatientsByWard = async (req, res) => {
@@ -200,28 +206,14 @@ const transferPatient = async (req, res) => {
     }
 };
 
+
 const getAllPatients = async (req, res) => {
-    console.log('DEBUG 1: Entered getAllPatients');
     // Build the patient query from request parameters
     let query;
     let sort;
 
     try {
-            const {
-                search,
-                name,
-                id,
-                minAge,
-                maxAge,
-                ward,
-                gender,
-                medication,
-                sortBy,
-                sortOrder
-            } = req.query;
-
-            // Ensure each supplied parameter is a single value
-            const parameters = {
+        const {
             search,
             name,
             id,
@@ -232,17 +224,31 @@ const getAllPatients = async (req, res) => {
             medication,
             sortBy,
             sortOrder
-            };
+        } = req.query;
+
+        // Ensure each supplied parameter is a single value
+        const parameters = {
+            search,
+            name,
+            id,
+            minAge,
+            maxAge,
+            ward,
+            gender,
+            medication,
+            sortBy,
+            sortOrder
+        };
 
         for (const [field, value] of Object.entries(parameters)) {
-        if (value !== undefined && typeof value !== 'string') {
-            return res.status(400).json({
-            message: `${field} must be a single value`
-            });
-        }
+            if (value !== undefined && typeof value !== 'string') {
+                return res.status(400).json({
+                    message: `${field} must be a single value`
+                });
+            }
         }
 
-        // Use the Builder pattern to construct the MongoDB query
+        // Use the Builder pattern to construct filtering and sorting criteria
         const builder = new PatientQueryBuilder()
             .setSearch(search)
             .setName(name)
@@ -254,31 +260,26 @@ const getAllPatients = async (req, res) => {
             .setMedication(medication)
             .setSortBy(sortBy)
             .setSortOrder(sortOrder);
-        
-            query = builder.build();
-            sort = builder.buildSort();
-            console.log('DEBUG 2: Query built', query, sort);
+
+        query = builder.build();
+        sort = builder.buildSort();
 
     } catch (error) {
         // Invalid search or filter criteria
         return res.status(400).json({
-        message: error.message
+            message: error.message
         });
     }
 
     // Retrieve patients using the constructed query
- 
-    // Retrieve patients using the constructed query
     try {
-        console.log('DEBUG 3: Starting database retrieval');
-
         let patients;
 
         // Filter patients by prescribed medication
         if (req.query.medication && req.query.medication.trim() !== '') {
 
             // Find medications with a matching name
-            const medications = await Medication.find({
+            const medications = await medicationRepository.find({
                 name: new RegExp(
                     PatientQueryBuilder.prototype.escapeRegex(
                         req.query.medication.trim()
@@ -293,7 +294,7 @@ const getAllPatients = async (req, res) => {
             );
 
             // Find patients with prescriptions for those medications
-            const patientIds = await Prescription.distinct(
+            const patientIds = await prescriptionRepository.distinct(
                 'patient',
                 {
                     medication: { $in: medicationIds }
@@ -309,13 +310,12 @@ const getAllPatients = async (req, res) => {
             };
         }
 
-
         if (Object.prototype.hasOwnProperty.call(sort, 'ward')) {
 
             // Ward sorting requires joining the Ward collection
             const direction = sort.ward;
 
-            patients = await Patient.aggregate([
+            patients = await patientRepository.aggregate([
                 // Apply search and filter criteria first
                 {
                     $match: query
@@ -365,13 +365,10 @@ const getAllPatients = async (req, res) => {
         } else {
 
             // Normal sorting for name, DOB and gender
-            patients = await Patient.find(query)
+            patients = await patientRepository.find(query, sort)
                 .select('name dateOfBirth gender ward')
-                .populate('ward', 'name')
-                .sort(sort);
+                .populate('ward', 'name');
         }
-
-        console.log('DEBUG 4: Retrieved', patients.length, 'patients');
 
         return res.status(200).json(patients);
 
@@ -379,7 +376,7 @@ const getAllPatients = async (req, res) => {
         console.error('Error retrieving patients:', error);
 
         return res.status(500).json({
-        message: 'Unable to retrieve patients'
+            message: 'Unable to retrieve patients'
         });
     }
 };

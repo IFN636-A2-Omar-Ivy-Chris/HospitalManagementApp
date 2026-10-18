@@ -48,6 +48,15 @@ class BaseRepository {
     deleteById(id) {
         return this.#model.findByIdAndDelete(id);
     }
+
+    // for PatientController/PatientQueryBuilder
+    distinct(field, filter = {}) {
+    return this.#model.distinct(field, filter);
+    }
+
+    aggregate(pipeline) {
+        return this.#model.aggregate(pipeline);
+    }
 }
 
 module.exports = BaseRepository;
