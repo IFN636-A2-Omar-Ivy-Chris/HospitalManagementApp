@@ -1,5 +1,7 @@
 const Patient = require("../models/Patient");
 const Ward = require("../models/Ward");
+const Medication = require('../models/Medication');
+const Prescription = require('../models/Prescription');
 const PatientQueryBuilder = require('../builders/PatientQueryBuilder');
 
 const getPatientsByWard = async (req, res) => {
@@ -199,10 +201,9 @@ const transferPatient = async (req, res) => {
 };
 
 const getAllPatients = async (req, res) => {
-
+    console.log('DEBUG 1: Entered getAllPatients');
     // Build the patient query from request parameters
     let query;
-
     let sort;
 
     try {
@@ -256,6 +257,7 @@ const getAllPatients = async (req, res) => {
         
             query = builder.build();
             sort = builder.buildSort();
+            console.log('DEBUG 2: Query built', query, sort);
 
     } catch (error) {
         // Invalid search or filter criteria
@@ -265,69 +267,111 @@ const getAllPatients = async (req, res) => {
     }
 
     // Retrieve patients using the constructed query
+ 
+    // Retrieve patients using the constructed query
     try {
+        console.log('DEBUG 3: Starting database retrieval');
+
         let patients;
+
+        // Filter patients by prescribed medication
+        if (req.query.medication && req.query.medication.trim() !== '') {
+
+            // Find medications with a matching name
+            const medications = await Medication.find({
+                name: new RegExp(
+                    PatientQueryBuilder.prototype.escapeRegex(
+                        req.query.medication.trim()
+                    ),
+                    'i'
+                )
+            }).select('_id');
+
+            // Get the IDs of matching medications
+            const medicationIds = medications.map(
+                medication => medication._id
+            );
+
+            // Find patients with prescriptions for those medications
+            const patientIds = await Prescription.distinct(
+                'patient',
+                {
+                    medication: { $in: medicationIds }
+                }
+            );
+
+            // Add the patient IDs to the existing filter query
+            query = {
+                $and: [
+                    query,
+                    { _id: { $in: patientIds } }
+                ]
+            };
+        }
+
 
         if (Object.prototype.hasOwnProperty.call(sort, 'ward')) {
 
-        // Ward sorting requires joining the Ward collection
-        const direction = sort.ward;
+            // Ward sorting requires joining the Ward collection
+            const direction = sort.ward;
 
-        patients = await Patient.aggregate([
-            // Apply search and filter criteria first
-            {
-            $match: query
-            },
+            patients = await Patient.aggregate([
+                // Apply search and filter criteria first
+                {
+                    $match: query
+                },
 
-            // Join patients with their wards
-            {
-            $lookup: {
-                from: 'wards',
-                localField: 'ward',
-                foreignField: '_id',
-                as: 'wardDetails'
-            }
-            },
+                // Join patients with their wards
+                {
+                    $lookup: {
+                        from: 'wards',
+                        localField: 'ward',
+                        foreignField: '_id',
+                        as: 'wardDetails'
+                    }
+                },
 
-            // Convert the wardDetails array into an object
-            {
-            $unwind: {
-                path: '$wardDetails',
-                preserveNullAndEmptyArrays: true
-            }
-            },
+                // Convert the wardDetails array into an object
+                {
+                    $unwind: {
+                        path: '$wardDetails',
+                        preserveNullAndEmptyArrays: true
+                    }
+                },
 
-            // Sort alphabetically by ward name
-            {
-            $sort: {
-                'wardDetails.name': direction,
-                name: 1,
-                _id: 1
-            }
-            },
+                // Sort alphabetically by ward name
+                {
+                    $sort: {
+                        'wardDetails.name': direction,
+                        name: 1,
+                        _id: 1
+                    }
+                },
 
-            // Return the same patient fields as the existing API
-            {
-            $project: {
-                name: 1,
-                dateOfBirth: 1,
-                gender: 1,
-                ward: {
-                _id: '$wardDetails._id',
-                name: '$wardDetails.name'
+                // Return the same patient fields as the existing API
+                {
+                    $project: {
+                        name: 1,
+                        dateOfBirth: 1,
+                        gender: 1,
+                        ward: {
+                            _id: '$wardDetails._id',
+                            name: '$wardDetails.name'
+                        }
+                    }
                 }
-            }
-            }
-        ]);
+            ]);
 
         } else {
 
-        // Normal sorting for name, DOB and gender
-        patients = await Patient.find(query)
-            .select('name dateOfBirth gender ward')
-            .populate('ward', 'name')
-            .sort(sort);
+            // Normal sorting for name, DOB and gender
+            patients = await Patient.find(query)
+                .select('name dateOfBirth gender ward')
+                .populate('ward', 'name')
+                .sort(sort);
         }
+
+        console.log('DEBUG 4: Retrieved', patients.length, 'patients');
 
         return res.status(200).json(patients);
 

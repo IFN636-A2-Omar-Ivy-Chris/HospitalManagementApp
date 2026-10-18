@@ -215,13 +215,7 @@ class PatientQueryBuilder {
     }
 
     // Filter by medication name
-    if (this.criteria.medication) {
-      conditions.push({
-        'medications.name': this.partialMatch(
-          this.criteria.medication
-        )
-      });
-    }
+
 
     // Filter by age range using date of birth
     if (

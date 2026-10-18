@@ -52,24 +52,41 @@ describe('PatientQueryBuilder', () => {
       .to.throw('Invalid ward ID');
   });
 
-  it('builds a partial medication-name match', () => {
-    const query = new PatientQueryBuilder().setMedication('warF').build();
-    expect(query['medications.name'].test('Warfarin')).to.equal(true);
-    expect(query['medications.name'].test('Aspirin')).to.equal(false);
+  it('stores the medication criterion without querying an embedded field', () => {
+      const builder = new PatientQueryBuilder()
+          .setMedication('Paracetamol');
+
+      const query = builder.build();
+
+      expect(builder.criteria.medication).to.equal('Paracetamol');
+      expect(query).to.deep.equal({});
   });
+
 
   it('combines multiple criteria using AND while keeping quick-search OR nested', () => {
-    const query = new PatientQueryBuilder()
-      .setSearch('smith')
-      .setGender('Female')
-      .setMedication('warfarin')
-      .build();
+      const builder = new PatientQueryBuilder()
+          .setSearch('smith')
+          .setGender('Female')
+          .setMedication('warfarin');
 
-    expect(query.$and).to.have.lengthOf(3);
-    expect(query.$and[0].$or).to.have.lengthOf(2);
-    expect(query.$and[1].gender.test('FEMALE')).to.equal(true);
-    expect(query.$and[2]['medications.name'].test('Warfarin')).to.equal(true);
+      const query = builder.build();
+
+      // Only search and gender belong in the patient query
+      expect(query.$and).to.have.lengthOf(2);
+
+      // Quick search must retain its nested OR conditions
+      expect(query.$and[0].$or).to.have.lengthOf(2);
+
+      // Gender filtering must still work
+      expect(query.$and[1].gender.test('FEMALE')).to.equal(true);
+
+      // Medication is stored for processing by the controller
+      expect(builder.criteria.medication).to.equal('warfarin');
+
+      // Medication must not be queried as an embedded patient field
+      expect(query.$and[1]).not.to.have.property('medications.name');
   });
+
 
   it('constructs correct date-of-birth cutoffs for inclusive age bounds', () => {
     const clock = sinon.useFakeTimers({
@@ -213,3 +230,23 @@ describe('Sorting', function () {
 
 });
 
+describe('Medication Filter Integration', function () {
+
+  it('should store and trim the medication filter', function () {
+    const builder = new PatientQueryBuilder()
+      .setMedication('  Paracetamol  ');
+
+    expect(builder.criteria.medication)
+      .to.equal('Paracetamol');
+  });
+
+  it('should not query a nonexistent embedded medications field', function () {
+    const builder = new PatientQueryBuilder()
+      .setMedication('Paracetamol');
+
+    const filter = builder.build();
+
+    expect(filter).to.deep.equal({});
+  });
+
+});
