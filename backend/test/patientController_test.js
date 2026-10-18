@@ -1,6 +1,8 @@
 const { expect } = require('chai');
 const sinon = require('sinon');
 const Patient = require('../models/Patient');
+const Medication = require('../models/Medication');
+const Prescription = require('../models/Prescription');
 const { getAllPatients } = require('../controllers/patientController');
 
 describe('getAllPatients controller', () => {
@@ -337,6 +339,233 @@ describe('getAllPatients - Sorting', function () {
     await getAllPatients(req, res);
 
     expect(res.status.calledWith(500)).to.equal(true);
+    expect(logStub.calledOnce).to.equal(true);
+  });
+
+});
+
+
+describe('getAllPatients - Medication Filtering', function () {
+
+  let sandbox;
+  let medicationFindStub;
+  let prescriptionDistinctStub;
+  let patientFindStub;
+  let patientAggregateStub;
+  let medicationQuery;
+  let patientQuery;
+  let req;
+  let res;
+
+  const medicationId = '507f1f77bcf86cd799439011';
+  const patientId = '507f1f77bcf86cd799439012';
+
+  beforeEach(function () {
+    sandbox = sinon.createSandbox();
+
+    // Mock the medication catalogue query
+    medicationQuery = {
+      select: sandbox.stub().resolves([
+        { _id: medicationId }
+      ])
+    };
+
+    medicationFindStub = sandbox.stub(Medication, 'find')
+      .returns(medicationQuery);
+
+    // Mock the prescription lookup
+    prescriptionDistinctStub = sandbox.stub(
+      Prescription, 'distinct'
+    ).resolves([patientId]);
+
+    // Mock the normal patient query
+    patientQuery = {
+      select: sandbox.stub().returnsThis(),
+      populate: sandbox.stub().returnsThis(),
+      sort: sandbox.stub().resolves([
+        { _id: patientId, name: 'Jane Smith' }
+      ])
+    };
+
+    patientFindStub = sandbox.stub(Patient, 'find')
+      .returns(patientQuery);
+
+    // Mock ward sorting
+    patientAggregateStub = sandbox.stub(
+      Patient, 'aggregate'
+    ).resolves([
+      { _id: patientId, name: 'Jane Smith' }
+    ]);
+
+    req = {
+      query: {
+        medication: 'Paracetamol'
+      }
+    };
+
+    res = {
+      status: sandbox.stub().returnsThis(),
+      json: sandbox.spy()
+    };
+  });
+
+  afterEach(function () {
+    sandbox.restore();
+  });
+
+  it('should find medications using a case-insensitive name match', async function () {
+    await getAllPatients(req, res);
+
+    expect(medicationFindStub.calledOnce).to.equal(true);
+
+    const filter = medicationFindStub.firstCall.args[0];
+
+    expect(filter.name).to.be.instanceOf(RegExp);
+    expect(filter.name.test('paracetamol')).to.equal(true);
+    expect(filter.name.test('PARACETAMOL')).to.equal(true);
+
+    expect(medicationQuery.select.calledOnceWithExactly('_id'))
+      .to.equal(true);
+  });
+
+  it('should retrieve patient IDs from matching prescriptions', async function () {
+    await getAllPatients(req, res);
+
+    expect(prescriptionDistinctStub.calledOnce).to.equal(true);
+
+    expect(prescriptionDistinctStub.firstCall.args[0])
+      .to.equal('patient');
+
+    expect(prescriptionDistinctStub.firstCall.args[1])
+      .to.deep.equal({
+        medication: {
+          $in: [medicationId]
+        }
+      });
+  });
+
+  it('should restrict results to patients prescribed the medication', async function () {
+    await getAllPatients(req, res);
+
+    const filter = patientFindStub.firstCall.args[0];
+
+    expect(filter.$and).to.be.an('array');
+
+    expect(filter.$and).to.deep.include({
+      _id: {
+        $in: [patientId]
+      }
+    });
+
+    expect(res.status.calledOnceWithExactly(200))
+      .to.equal(true);
+  });
+
+  it('should combine medication filtering with gender and sorting', async function () {
+    req.query = {
+      medication: 'Paracetamol',
+      gender: 'Female',
+      sortBy: 'name',
+      sortOrder: 'desc'
+    };
+
+    await getAllPatients(req, res);
+
+    const filter = patientFindStub.firstCall.args[0];
+
+    expect(filter.$and).to.be.an('array');
+
+    // Existing gender filter must still be present
+    const filterText = JSON.stringify(filter);
+
+    expect(filterText).to.include('gender');
+
+    // Medication restriction must also be present
+    expect(filter.$and).to.deep.include({
+      _id: {
+        $in: [patientId]
+      }
+    });
+
+    expect(patientQuery.sort.calledOnceWithExactly({
+      name: -1
+    })).to.equal(true);
+  });
+
+  it('should apply medication filtering when sorting by ward', async function () {
+    req.query = {
+      medication: 'Paracetamol',
+      sortBy: 'ward'
+    };
+
+    await getAllPatients(req, res);
+
+    expect(patientAggregateStub.calledOnce).to.equal(true);
+    expect(patientFindStub.notCalled).to.equal(true);
+
+    const pipeline = patientAggregateStub.firstCall.args[0];
+
+    const matchStage = pipeline.find(stage => stage.$match);
+
+    expect(matchStage.$match.$and).to.deep.include({
+      _id: {
+        $in: [patientId]
+      }
+    });
+
+    const sortStage = pipeline.find(stage => stage.$sort);
+
+    expect(sortStage.$sort['wardDetails.name']).to.equal(1);
+  });
+
+  it('should return an empty array when no prescriptions match', async function () {
+    prescriptionDistinctStub.resolves([]);
+
+    patientQuery.sort.resolves([]);
+
+    await getAllPatients(req, res);
+
+    const filter = patientFindStub.firstCall.args[0];
+
+    expect(filter.$and).to.deep.include({
+      _id: {
+        $in: []
+      }
+    });
+
+    expect(res.status.calledOnceWithExactly(200))
+      .to.equal(true);
+
+    expect(res.json.calledOnceWithExactly([]))
+      .to.equal(true);
+  });
+
+  it('should skip medication lookups when no medication filter is supplied', async function () {
+    req.query = {};
+
+    await getAllPatients(req, res);
+
+    expect(medicationFindStub.notCalled).to.equal(true);
+    expect(prescriptionDistinctStub.notCalled).to.equal(true);
+    expect(patientFindStub.calledOnce).to.equal(true);
+  });
+
+  it('should return 500 when the prescription lookup fails', async function () {
+    prescriptionDistinctStub.rejects(
+      new Error('Prescription database unavailable')
+    );
+
+    const logStub = sandbox.stub(console, 'error');
+
+    await getAllPatients(req, res);
+
+    expect(res.status.calledOnceWithExactly(500))
+      .to.equal(true);
+
+    expect(res.json.calledOnceWithExactly({
+      message: 'Unable to retrieve patients'
+    })).to.equal(true);
+
     expect(logStub.calledOnce).to.equal(true);
   });
 
