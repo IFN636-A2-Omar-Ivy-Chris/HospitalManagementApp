@@ -17,11 +17,11 @@ describe('getAllPatients controller', () => {
   }
 
   beforeEach(() => {
-    // Simulate the chain: Patient.find(filter).select(...).populate(...)
+    // BaseRepository.find() sorts first; the controller then selects and populates.
     mongooseQuery = {
+      sort: sinon.stub().returnsThis(),
       select: sinon.stub().returnsThis(),
-      populate: sinon.stub().returnsThis(),
-      sort: sinon.stub().resolves([])
+      populate: sinon.stub().resolves([])
     };
     findStub = sinon.stub(Patient, 'find').returns(mongooseQuery);
   });
@@ -36,6 +36,7 @@ describe('getAllPatients controller', () => {
 
     expect(findStub.calledOnce).to.equal(true);
     expect(findStub.firstCall.args[0]).to.deep.equal({});
+    expect(mongooseQuery.sort.calledOnce).to.equal(true);
     expect(mongooseQuery.select.calledOnceWithExactly('name dateOfBirth gender ward'))
       .to.equal(true);
     expect(mongooseQuery.populate.calledOnceWithExactly('ward', 'name'))
@@ -70,7 +71,7 @@ describe('getAllPatients controller', () => {
       gender: 'Female',
       ward: { name: 'Cardiology' }
     }];
-    mongooseQuery.sort.resolves(patients);
+    mongooseQuery.populate.resolves(patients);
     const res = response();
 
     await getAllPatients({ query: { name: 'Jane' } }, res);
@@ -117,7 +118,7 @@ describe('getAllPatients controller', () => {
   });
 
   it('returns 500 when the database query fails', async () => {
-    mongooseQuery.sort.rejects(new Error('Database unavailable'));
+    mongooseQuery.populate.rejects(new Error('Database unavailable'));
     const logStub = sinon.stub(console, 'error');
     const res = response();
 
@@ -150,11 +151,11 @@ describe('getAllPatients - Sorting', function () {
       { _id: '2', name: 'Bob', gender: 'Male' }
     ];
 
-    // Mock the Mongoose query chain
+    // Mock the Mongoose query chain returned through PatientRepository.find()
     queryMock = {
+      sort: sandbox.stub().returnsThis(),
       select: sandbox.stub().returnsThis(),
-      populate: sandbox.stub().returnsThis(),
-      sort: sandbox.stub().resolves(mockPatients)
+      populate: sandbox.stub().resolves(mockPatients)
     };
 
     findStub = sandbox.stub(Patient, 'find')
@@ -320,7 +321,7 @@ describe('getAllPatients - Sorting', function () {
   });
 
   it('should return 500 if normal sorting fails', async function () {
-    queryMock.sort.rejects(new Error('Database error'));
+    queryMock.populate.rejects(new Error('Database error'));
     const logStub = sandbox.stub(console, 'error');
     await getAllPatients(req, res);
 
@@ -363,8 +364,9 @@ describe('getAllPatients - Medication Filtering', function () {
   beforeEach(function () {
     sandbox = sinon.createSandbox();
 
-    // Mock the medication catalogue query
+    // MedicationRepository.find() applies .sort() before controller .select()
     medicationQuery = {
+      sort: sandbox.stub().returnsThis(),
       select: sandbox.stub().resolves([
         { _id: medicationId }
       ])
@@ -378,11 +380,11 @@ describe('getAllPatients - Medication Filtering', function () {
       Prescription, 'distinct'
     ).resolves([patientId]);
 
-    // Mock the normal patient query
+    // PatientRepository.find() applies .sort() before controller selection/population
     patientQuery = {
+      sort: sandbox.stub().returnsThis(),
       select: sandbox.stub().returnsThis(),
-      populate: sandbox.stub().returnsThis(),
-      sort: sandbox.stub().resolves([
+      populate: sandbox.stub().resolves([
         { _id: patientId, name: 'Jane Smith' }
       ])
     };
@@ -424,6 +426,9 @@ describe('getAllPatients - Medication Filtering', function () {
     expect(filter.name.test('paracetamol')).to.equal(true);
     expect(filter.name.test('PARACETAMOL')).to.equal(true);
 
+    // MedicationRepository inherits find() and applies its default name sort.
+    expect(medicationQuery.sort.calledOnceWithExactly({ name: 1 }))
+      .to.equal(true);
     expect(medicationQuery.select.calledOnceWithExactly('_id'))
       .to.equal(true);
   });
@@ -521,7 +526,7 @@ describe('getAllPatients - Medication Filtering', function () {
   it('should return an empty array when no prescriptions match', async function () {
     prescriptionDistinctStub.resolves([]);
 
-    patientQuery.sort.resolves([]);
+    patientQuery.populate.resolves([]);
 
     await getAllPatients(req, res);
 
@@ -570,4 +575,3 @@ describe('getAllPatients - Medication Filtering', function () {
   });
 
 });
-

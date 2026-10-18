@@ -148,14 +148,15 @@ class PatientQueryBuilder {
     this.sortOrder = order;
     return this;
   }   
-    
-    buildSort() {
-      const direction = this.sortOrder === 'asc' ? 1 : -1;
+  
+  // Construct the MongoDB sorting object  
+  buildSort() {
+    const direction = this.sortOrder === 'asc' ? 1 : -1;
 
-      return {
-        [this.sortBy]: direction
-      };
-    }
+    return {
+      [this.sortBy]: direction
+    };
+  }
 
   // Construct the MongoDB query filter
   build() {
@@ -213,9 +214,6 @@ class PatientQueryBuilder {
         gender: new RegExp(`^${gender}$`, 'i')
       });
     }
-
-    // Filter by medication name
-
 
     // Filter by age range using date of birth
     if (
