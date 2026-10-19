@@ -1,64 +1,79 @@
 # Hospital Management App
 
-Hospital Management App is a MERN web application developed for the IFN636 Software Life Cycle Management assessment. The application provides basic hospital ward and patient management functionality for doctors and nurses.
+Hospital Management App is a MERN web application developed for IFN636 Software Life Cycle Management (Assessment 2). It supports hospital ward, patient and medication management for doctors, nurses and pharmacists, with role-based access to each function.
 
 ## Features
 
-* User login and authentication using JWT
-* Doctor and nurse role-based access
-* View hospital wards
-* View patients assigned to each ward
-* View patient records
-* Admit new patients
-* Edit basic patient details
-* Transfer patients between wards
-* Discharge patients
+**Ward and patient management**
+* View wards and the patients assigned to each ward
+* View and edit patient records
+* Admit, transfer and discharge patients (doctor only)
 
-Some functionality is restricted by role. For example, only doctors can admit and transfer patients.
+**Home page**
+* Hospital news and on-call staff
+* Personal notes: create, edit and delete your own notes
+
+**Pharmacy and prescribing**
+* View the medication catalogue (all staff)
+* Add, edit and delete medications (pharmacist only)
+* View a patient's current medications (all staff)
+* Prescribe, modify and remove a patient's medications (doctor only)
+* A medication cannot be deleted while it is prescribed to a patient
+
+**Security**
+* JWT authentication on every route except login
+* Role-based access for doctors, nurses and pharmacists (403 for unauthorised roles)
 
 ## Architecture
 
-The application uses the MERN stack:
-
 * **Frontend:** React
 * **Backend:** Node.js and Express
-* **Database:** MongoDB Atlas
+* **Database:** MongoDB Atlas (Mongoose)
 * **Authentication:** JSON Web Tokens (JWT)
-* **Deployment:** Amazon EC2
-
-The frontend communicates with the backend through REST API endpoints. The Express backend handles authentication, authorisation, validation and database operations using Mongoose.
+* **Deployment:** Two Amazon EC2 instances (Nginx and pm2) behind an AWS Application Load Balancer
+* **CI/CD:** GitHub Actions
 
 ```text
-React Frontend
-      |
-      | REST API
-      v
-Node.js / Express Backend
-      |
-      | Mongoose
-      v
-MongoDB Atlas
+Browser
+   |
+   v
+AWS Application Load Balancer
+   |                    |
+   v                    v
+EC2 instance 1       EC2 instance 2
+Nginx (port 80)      Nginx (port 80)
+ /     -> React (pm2, port 3000)
+ /api/ -> Express (pm2, port 5001)
+   |                    |
+   +---------+----------+
+             v
+       MongoDB Atlas
 ```
+
+### Design patterns
+
+* **Repository** (`backend/repositories/`): controllers access data through repository classes rather than Mongoose models directly
+* **Template Method** (`BaseRepository.find`): a fixed query algorithm (filter, sort, populate) with hook methods that subclasses override
+* **Facade** (`backend/facades/HomePageFacade.js`): a single interface for building the home page data
+* **Builder** (`backend/builders/PatientQueryBuilder.js`): builds patient queries step by step
 
 ## Local Setup
 
 ### Requirements
 
-* Node.js
+* Node.js 22
 * npm
 * MongoDB Atlas database
 
 ### Installation
 
-Clone the repository and install the dependencies:
-
 ```bash
-git clone https://github.com/ChristopherNHorsfall/HospitalManagementApp
+git clone https://github.com/IFN636-A2-Omar-Ivy-Chris/HospitalManagementApp
 cd HospitalManagementApp
 npm run install-all
 ```
 
-Create a `.env` file inside the `backend` directory containing:
+Create a `.env` file inside the `backend` directory:
 
 ```text
 PORT=5001
@@ -83,43 +98,67 @@ Start the application from the project root:
 npm start
 ```
 
-The frontend will run at:
+* Frontend: `http://localhost:3000`
+* Backend: `http://localhost:5001`
 
-```text
-http://localhost:3000
+Port `5000` is avoided because macOS uses it for AirPlay Receiver.
+
+## Test Accounts
+
+| Role | Email | Password |
+|---|---|---|
+| Doctor | sarah.smith@hospital.com | `password` |
+| Nurse | emily.brown@hospital.com | `password` |
+| Pharmacist | pharmacist@hospital.com | `password` |
+
+## Testing
+
+### Unit and functional tests (Mocha, Chai, Sinon)
+
+```bash
+cd backend
+npm test
 ```
 
-The backend runs on port `5001`. Port `5000` is avoided because macOS uses it for AirPlay Receiver.
+Test files are in `backend/test/` and are named after the features they test. Test groups are named after their Jira user stories (for example `PHA-02 createMedication`). Non-functional security tests (`securityRoutes_test.js`, `authMiddleware_test.js`) check that every route requires login and that role restrictions match the user role table.
+
+### API tests (Postman)
+
+View the attached link https://www.postman.com/omarshakkaithompson-6418074/ifn636-a2/overview?sideView=agentMode  
+
+Before you run these tests ensure you run the following: 
+
+```bash
+cd backend
+npm run dev
+```
+
+## CI/CD Pipeline
+
+The workflow in `.github/workflows/ci.yml` runs on every push and pull request:
+
+1. **Test:** installs dependencies and runs the Mocha tests on `ubuntu-latest`
+2. **Deploy** (pushes only, after the tests pass): runs on self-hosted runners on both EC2 instances, installs dependencies, builds the React frontend, writes `.env` from repository secrets, and restarts the app with pm2
 
 ## Deployment
 
-The application is deployed to an Amazon EC2 instance.
+The application runs on two EC2 instances behind an AWS Application Load Balancer. Access it through the load balancer's DNS name:
 
-**Deployment URL:**
-`http://<EC2-PUBLIC-IP>:3000`
+**URL:** `http://hma-alb-245743769.ap-southeast-2.elb.amazonaws.com`
 
-The EC2 public IP will change when the instance is stopped and restarted. 
+Each instance runs Nginx on port 80, which serves the React build and forwards `/api/` requests to the Express backend. The DNS name stays the same when instances are stopped and restarted.
+
+Both EC2 instances must be running for the app to be available. The load balancer only sends traffic to healthy instances, so the URL returns 503 if both are stopped. The instances are stopped when not in use to save cost.
 
 ## Known Limitations
 
-* The application currently supports only doctor and nurse workflows implemented for the assessment sprint.
-* Patient medical information such as medications and history is not yet editable.
-* Discharging a patient currently removes the patient record from the database rather than retaining an archived medical record.
-* Ward capacity and bed allocation are not currently managed.
-* The application uses a basic development deployment configuration suitable for assessment demonstration rather than a production environment.
-* The EC2 public IP address may change after the instance is stopped and restarted.
+* Discharging a patient removes the patient record rather than archiving it.
+* Ward capacity and bed allocation are not managed.
+* Load testing showed the free MongoDB Atlas M0 tier limits API throughput (about 40–100 requests per second); a dedicated tier or caching would be needed for production.
+* Both EC2 instances are in the same availability zone, so the app tolerates a single instance failure but not a full zone outage. Placing the instances in different availability zones would remove this risk.
+* Medication names are unique but case-sensitive, so names differing only in capitals are accepted.
+* The application is publicly accessible over HTTP, so login details and tokens are not encrypted in transit. Production use would require an HTTPS listener on the load balancer with an AWS Certificate Manager (ACM) certificate.
 
 ## Version Control
 
-Development is managed using Git and GitHub with feature branches and regular commits associated with jira stories and subtasks. 
-
-
-Test Account - Pharmacist 
-Name: Test Pharmacist 
-Email: pharmacist@hospital.com
-Password: password
-Role: Pharmacist 
-
-
-
-2nd test for deploying on a secon instance for CI/CD
+Development is managed with Git and GitHub using feature branches and pull requests. Branches and commits include Jira issue keys so that work is linked to the HMA Jira project.
